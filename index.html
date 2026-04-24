@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Facturador PuntoMed</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --verde: #00c853;
+      --verde-oscuro: #009624;
+      --fondo: #0d1117;
+      --panel: #161b22;
+      --borde: #30363d;
+      --texto: #e6edf3;
+      --texto-secundario: #8b949e;
+      --rojo: #f85149;
+      --azul: #58a6ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--fondo);
+      color: var(--texto);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--borde);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      background: var(--verde);
+      color: #000;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--texto);
+    }
+
+    header span {
+      font-size: 12px;
+      color: var(--texto-secundario);
+      margin-left: auto;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* AUTH SECTION */
+    #auth-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      gap: 24px;
+      text-align: center;
+    }
+
+    #auth-section h2 {
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--texto);
+    }
+
+    #auth-section p {
+      color: var(--texto-secundario);
+      font-size: 15px;
+      max-width: 400px;
+      line-height: 1.6;
+    }
+
+    .btn-ml {
+      background: var(--verde);
+      color: #000;
+      border: none;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'IBM Plex Sans', sans-serif;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-ml:hover { background: var(--verde-oscuro); color: #fff; }
+
+    /* MAIN APP */
+    #app-section { display: none; }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-bar h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .badge {
+      background: var(--verde);
+      color: #000;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .btn-refresh {
+      background: transparent;
+      border: 1px solid var(--borde);
+      color: var(--texto);
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+
+    .btn-refresh:hover { border-color: var(--verde); color: var(--verde); }
+
+    /* VENTAS */
+    .ventas-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .venta-card {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+
+    .venta-card:hover { border-color: var(--verde); }
+
+    .venta-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .venta-id {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--texto-secundario);
+    }
+
+    .venta-monto {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--verde);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .venta-producto {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--texto);
+    }
+
+    .datos-comprador {
+      background: rgba(0,200,83,0.05);
+      border: 1px solid rgba(0,200,83,0.15);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .datos-comprador h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--verde);
+      margin-bottom: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .dato-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      align-items: baseline;
+    }
+
+    .dato-label {
+      color: var(--texto-secundario);
+      min-width: 90px;
+      font-size: 12px;
+    }
+
+    .dato-valor {
+      color: var(--texto);
+      font-weight: 400;
+    }
+
+    .venta-footer {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-ver {
+      background: transparent;
+      border: 1px solid var(--azul);
+      color: var(--azul);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .btn-ver:hover { background: rgba(88,166,255,0.1); }
+
+    .btn-facturado {
+      background: transparent;
+      border: 1px solid var(--borde);
+      color: var(--texto-secundario);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .btn-facturado:hover { border-color: var(--verde); color: var(--verde); }
+    .btn-facturado.done { background: rgba(0,200,83,0.1); border-color: var(--verde); color: var(--verde); }
+
+    /* LOADING */
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--texto-secundario);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--borde);
+      border-top-color: var(--verde);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty {
+      text-align: center;
+      padding: 60px;
+      color: var(--texto-secundario);
+      font-size: 15px;
+    }
+
+    .error-msg {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.3);
+      color: var(--rojo);
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    /* TOKEN INPUT manual */
+    .token-form {
+      background: var(--panel);
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      padding: 24px;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .token-form h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .token-form p {
+      font-size: 13px;
+      color: var(--texto-secundario);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .token-form input {
+      width: 100%;
+      background: var(--fondo);
+      border: 1px solid var(--borde);
+      color: var(--texto);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      margin-bottom: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .token-form input:focus { border-color: var(--verde); }
+
+    .tag-pendiente {
+      background: rgba(248,81,73,0.15);
+      color: var(--rojo);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .tag-facturado {
+      background: rgba(0,200,83,0.15);
+      color: var(--verde);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PM</div>
+  <h1>Facturador PuntoMed</h1>
+  <span id="usuario-nombre"></span>
+</header>
+
+<div class="container">
+
+  <!-- AUTH -->
+  <div id="auth-section">
+    <h2>Conectar con Mercado Libre</h2>
+    <p>Autoriza la app para ver tus ventas que requieren factura y los datos de tus compradores.</p>
+    <div class="token-form">
+      <h3>Paso 1: Autorizar</h3>
+      <p>Haz clic aquí para iniciar sesión con tu cuenta de Mercado Libre:</p>
+      <a id="btn-auth" class="btn-ml" href="#">🔗 Conectar con Mercado Libre</a>
+      <br/><br/>
+      <h3>Paso 2: Pegar token</h3>
+      <p>Después de autorizar, copia el <strong>access_token</strong> que aparece en la URL y pégalo aquí:</p>
+      <input type="text" id="token-input" placeholder="Pega aquí tu access_token..." />
+      <button class="btn-ml" onclick="conectarConToken()" style="width:100%">✅ Conectar</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app-section">
+    <div class="top-bar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <h2>Ventas con solicitud de factura</h2>
+        <span class="badge" id="contador-badge">0</span>
+      </div>
+      <button class="btn-refresh" onclick="cargarVentas()">↻ Actualizar</button>
+    </div>
+    <div id="error-container"></div>
+    <div id="ventas-container" class="ventas-grid">
+      <div class="loading"><div class="spinner"></div><br/>Cargando ventas...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const CLIENT_ID = '6043593506541220';
+  const REDIRECT_URI = encodeURIComponent(window.location.href.split('?')[0].split('#')[0]);
+
+  // Configurar botón de auth
+  document.getElementById('btn-auth').href =
+    `https://auth.mercadolibre.cl/authorization?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
+
+  let accessToken = localStorage.getItem('ml_token') || '';
+  let facturadas = JSON.parse(localStorage.getItem('facturadas') || '{}');
+
+  // Verificar si venimos del callback con token en URL
+  window.addEventListener('load', () => {
+    const hash = window.location.hash;
+    if (hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const token = params.get('access_token');
+      if (token) {
+        localStorage.setItem('ml_token', token);
+        accessToken = token;
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+    if (accessToken) {
+      mostrarApp();
+      cargarVentas();
+    }
+  });
+
+  function conectarConToken() {
+    const val = document.getElementById('token-input').value.trim();
+    if (!val) { alert('Por favor pega el access_token'); return; }
+    localStorage.setItem('ml_token', val);
+    accessToken = val;
+    mostrarApp();
+    cargarVentas();
+  }
+
+  function mostrarApp() {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('app-section').style.display = 'block';
+  }
+
+  async function cargarVentas() {
+    const cont = document.getElementById('ventas-container');
+    const errCont = document.getElementById('error-container');
+    errCont.innerHTML = '';
+    cont.innerHTML = '<div class="loading"><div class="spinner"></div><br/>Cargando ventas...</div>';
+
+    try {
+      // Obtener usuario
+      const meRes = await fetch('https://api.mercadolibre.com/users/me', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (!meRes.ok) throw new Error('Token inválido o expirado');
+      const me = await meRes.json();
+      document.getElementById('usuario-nombre').textContent = me.nickname || me.email;
+
+      // Obtener órdenes recientes
+      const ordRes = await fetch(
+        `https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=50`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+      );
+      if (!ordRes.ok) throw new Error('No se pudieron cargar las órdenes');
+      const ordData = await ordRes.json();
+      const ordenes = ordData.results || [];
+
+      // Filtrar órdenes que tienen datos de factura (billing info)
+      const conFactura = ordenes.filter(o =>
+        o.buyer?.billing_info?.doc_number ||
+        o.buyer?.billing_info?.company_name ||
+        o.taxes_breakdown
+      );
+
+      document.getElementById('contador-badge').textContent = conFactura.length;
+
+      if (conFactura.length === 0) {
+        cont.innerHTML = '<div class="empty">No hay ventas con datos de factura pendientes 🎉</div>';
+        return;
+      }
+
+      cont.innerHTML = '';
+      conFactura.forEach(orden => renderVenta(orden, cont));
+
+    } catch (err) {
+      cont.innerHTML = '';
+      errCont.innerHTML = `<div class="error-msg">⚠️ ${err.message}. <a href="#" onclick="cerrarSesion()" style="color:var(--rojo)">Reconectar</a></div>`;
+    }
+  }
+
+  function renderVenta(orden, cont) {
+    const comprador = orden.buyer || {};
+    const billing = comprador.billing_info || {};
+    const item = orden.order_items?.[0]?.item || {};
+    const monto = orden.total_amount || 0;
+    const moneda = orden.currency_id || 'CLP';
+    const ordenId = orden.id;
+    const yaFacturada = facturadas[ordenId];
+
+    const card = document.createElement('div');
+    card.className = 'venta-card';
+    card.id = `card-${ordenId}`;
+
+    const razon = billing.company_name || comprador.first_name + ' ' + (comprador.last_name || '');
+    const rut = billing.doc_number || 'No disponible';
+    const direccion = billing.city_name || 'No disponible';
+    const giro = billing.business_type || 'No disponible';
+    const linkVenta = `https://www.mercadolibre.cl/ventas/${ordenId}/detalle`;
+
+    card.innerHTML = `
+      <div class="venta-header">
+        <div>
+          <div class="venta-id">Orden #${ordenId}</div>
+          <div style="margin-top:4px">
+            ${yaFacturada
+              ? '<span class="tag-facturado">✓ FACTURADA</span>'
+              : '<span class="tag-pendiente">PENDIENTE</span>'}
+          </div>
+        </div>
+        <div class="venta-monto">$${Number(monto).toLocaleString('es-CL')} ${moneda}</div>
+      </div>
+      <div class="venta-producto">${item.title || 'Producto sin título'}</div>
+      <div class="datos-comprador">
+        <h4>📋 Datos del comprador</h4>
+        <div class="dato-row"><span class="dato-label">Razón social</span><span class="dato-valor">${razon}</span></div>
+        <div class="dato-row"><span class="dato-label">RUT</span><span class="dato-valor">${rut}</span></div>
+        <div class="dato-row"><span class="dato-label">Dirección</span><span class="dato-valor">${direccion}</span></div>
+        <div class="dato-row"><span class="dato-label">Giro</span><span class="dato-valor">${giro}</span></div>
+      </div>
+      <div class="venta-footer">
+        <a href="${linkVenta}" target="_blank" class="btn-ver">👁 Ver venta en ML</a>
+        <button class="btn-facturado ${yaFacturada ? 'done' : ''}" onclick="marcarFacturada('${ordenId}')">
+          ${yaFacturada ? '✓ Facturada' : 'Marcar como facturada'}
+        </button>
+      </div>
+    `;
+    cont.appendChild(card);
+  }
+
+  function marcarFacturada(id) {
+    facturadas[id] = !facturadas[id];
+    localStorage.setItem('facturadas', JSON.stringify(facturadas));
+    cargarVentas();
+  }
+
+  function cerrarSesion() {
+    localStorage.removeItem('ml_token');
+    location.reload();
+  }
+</script>
+</body>
+</html>
