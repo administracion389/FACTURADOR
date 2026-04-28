@@ -14,7 +14,6 @@
     header h1{font-size:17px;font-weight:600}
     #usuario{font-size:12px;color:var(--gris);margin-left:auto;font-family:'IBM Plex Mono',monospace}
     .container{max-width:1000px;margin:0 auto;padding:28px 20px}
-    /* AUTH */
     #auth{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:75vh;gap:20px}
     #auth h2{font-size:24px;font-weight:300}
     .card{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:22px;max-width:480px;width:100%}
@@ -29,7 +28,6 @@
     .btn-azul{background:transparent;border:1px solid var(--azul);color:var(--azul);padding:7px 15px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;text-decoration:none;transition:background .2s}
     .btn-azul:hover{background:rgba(88,166,255,.1)}
     .btn-done{background:rgba(0,200,83,.1);border:1px solid var(--verde);color:var(--verde);padding:7px 15px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
-    /* APP */
     #app{display:none}
     .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
     .topbar h2{font-size:19px;font-weight:600}
@@ -55,6 +53,10 @@
     .err{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);color:var(--rojo);padding:14px;border-radius:7px;font-size:13px;margin-bottom:16px}
     .info{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.18);border-radius:7px;padding:11px 14px;font-size:13px;color:var(--azul);margin-bottom:16px}
     .sep{border:none;border-top:1px solid var(--borde);margin:16px 0}
+    .progress{background:var(--panel);border:1px solid var(--borde);border-radius:7px;padding:20px;text-align:center;margin-bottom:16px}
+    .progress p{font-size:13px;color:var(--gris);margin-bottom:10px}
+    .pbar{background:var(--borde);border-radius:4px;height:6px;overflow:hidden}
+    .pfill{background:var(--verde);height:100%;border-radius:4px;transition:width .3s}
     .manual-form{background:rgba(0,0,0,.3);border:1px solid var(--borde);border-radius:7px;padding:14px;margin-top:10px}
     .manual-form input{margin-bottom:7px;font-size:12px;padding:7px 11px}
     .manual-form label{font-size:11px;color:var(--gris);display:block;margin-bottom:3px}
@@ -77,7 +79,7 @@
       <button class="btn" onclick="conectar()">✅ Conectar</button>
       <hr class="sep"/>
       <h3>¿Sin token?</h3>
-      <p>Haz clic para autorizar tu cuenta de ML y obtener uno automáticamente:</p>
+      <p>Haz clic para autorizar tu cuenta de ML:</p>
       <a id="btnauth" class="btn" href="#">🔗 Autorizar con Mercado Libre</a>
     </div>
   </div>
@@ -87,19 +89,25 @@
       <button class="btn-outline" onclick="cargar()">↻ Actualizar</button>
     </div>
     <div id="errbox"></div>
-    <div id="ventas" class="ventas"><div class="loading"><div class="spin"></div><br/>Cargando...</div></div>
+    <div id="progbox" style="display:none">
+      <div class="progress">
+        <p id="progtxt">Revisando ventas...</p>
+        <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div id="ventas" class="ventas"></div>
   </div>
 </div>
 <script>
 const CID='6043593506541220';
 const CSEC='ZUggct6E0HGh3kJZk5jHqbahwpQrlctm';
 const RURI='https://administracion389.github.io/FACTURADOR/';
-// Usar múltiples proxies con fallback
 const PROXIES=[
   u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u=>`https://thingproxy.freeboard.io/fetch/${u}`
 ];
+const KEYWORDS=['factura','boleta','rut','razón social','razon social','giro','tributario','sii','necesito factura','quiero factura','solicito factura'];
 
 document.getElementById('btnauth').href=
   `https://auth.mercadolibre.cl/authorization?response_type=code&client_id=${CID}&redirect_uri=${encodeURIComponent(RURI)}`;
@@ -108,7 +116,7 @@ let token=localStorage.getItem('ml_token')||'';
 let rtoken=localStorage.getItem('ml_rtoken')||'';
 let facturadas=JSON.parse(localStorage.getItem('facturadas')||'{}');
 let datosManual=JSON.parse(localStorage.getItem('datos_manual')||'{}');
-let ventasGuardadas=JSON.parse(localStorage.getItem('ventas_guardadas')||'[]');
+let userId=null;
 
 window.addEventListener('load',()=>{
   const p=new URLSearchParams(window.location.search);
@@ -117,26 +125,30 @@ window.addEventListener('load',()=>{
   if(token){mostrarApp();cargar();}
 });
 
-async function mlFetch(url){
+async function fetchProxy(url,opts={}){
   let lastErr;
   for(const proxy of PROXIES){
     try{
-      const r=await fetch(proxy(url),{headers:{'Authorization':`Bearer ${token}`},signal:AbortSignal.timeout(8000)});
+      const r=await fetch(proxy(url),{...opts,signal:AbortSignal.timeout(10000)});
+      if(r.status===401){await refrescar();const r2=await fetch(proxy(url),{...opts,headers:{...opts.headers,'Authorization':`Bearer ${token}`}});if(r2.ok)return await r2.json();}
       if(r.ok)return await r.json();
-      if(r.status===401){await refrescar();const r2=await fetch(proxy(url),{headers:{'Authorization':`Bearer ${token}`}});if(r2.ok)return await r2.json();}
-      lastErr=new Error(`Error ${r.status}`);
+      lastErr=new Error(`HTTP ${r.status}`);
     }catch(e){lastErr=e;}
   }
   throw lastErr||new Error('Sin conexión');
 }
 
-async function postML(url,body){
+async function mlGet(url){
+  return fetchProxy(url,{headers:{'Authorization':`Bearer ${token}`}});
+}
+
+async function mlPost(url,body){
   let lastErr;
   for(const proxy of PROXIES){
     try{
-      const r=await fetch(proxy(url),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(8000)});
+      const r=await fetch(proxy(url),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(10000)});
       if(r.ok)return await r.json();
-      lastErr=new Error(`Error ${r.status}`);
+      lastErr=new Error(`HTTP ${r.status}`);
     }catch(e){lastErr=e;}
   }
   throw lastErr||new Error('Sin conexión');
@@ -145,19 +157,19 @@ async function postML(url,body){
 async function refrescar(){
   if(!rtoken)return;
   try{
-    const d=await postML('https://api.mercadolibre.com/oauth/token',
+    const d=await mlPost('https://api.mercadolibre.com/oauth/token',
       `grant_type=refresh_token&client_id=${CID}&client_secret=${CSEC}&refresh_token=${rtoken}`);
     if(d.access_token){
       token=d.access_token;rtoken=d.refresh_token||rtoken;
       localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
     }
-  }catch(e){console.warn('No se pudo refrescar token',e);}
+  }catch(e){}
 }
 
 async function intercambiar(code){
   document.getElementById('auth').innerHTML='<div class="loading"><div class="spin"></div><br/>Conectando...</div>';
   try{
-    const d=await postML('https://api.mercadolibre.com/oauth/token',
+    const d=await mlPost('https://api.mercadolibre.com/oauth/token',
       `grant_type=authorization_code&client_id=${CID}&client_secret=${CSEC}&code=${code}&redirect_uri=${encodeURIComponent(RURI)}`);
     if(d.access_token){
       token=d.access_token;rtoken=d.refresh_token||'';
@@ -183,77 +195,99 @@ function mostrarApp(){
   document.getElementById('app').style.display='block';
 }
 
+function setProgress(txt,pct){
+  document.getElementById('progbox').style.display='block';
+  document.getElementById('progtxt').textContent=txt;
+  document.getElementById('pfill').style.width=pct+'%';
+}
+
 async function cargar(){
   const cont=document.getElementById('ventas');
   const err=document.getElementById('errbox');
   err.innerHTML='';
-  cont.innerHTML='<div class="loading"><div class="spin"></div><br/>Cargando ventas...</div>';
+  cont.innerHTML='<div class="loading"><div class="spin"></div><br/>Obteniendo ventas...</div>';
+  document.getElementById('nbadge').textContent='...';
+
   try{
-    const me=await mlFetch('https://api.mercadolibre.com/users/me');
+    // Obtener usuario
+    const me=await mlGet('https://api.mercadolibre.com/users/me');
+    userId=me.id;
     document.getElementById('usuario').textContent=me.nickname||'';
 
-    // Cargar órdenes con paginación
-    let todas=[];
-    let offset=0;
-    const limit=50;
-    while(true){
-      const d=await mlFetch(`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=${limit}&offset=${offset}`);
-      const res=d.results||[];
-      todas=[...todas,...res];
-      if(res.length<limit||todas.length>=200)break;
-      offset+=limit;
-    }
-
-    // Guardar ventas nuevas en localStorage
-    const ids=new Set(ventasGuardadas.map(v=>v.id));
-    const nuevas=todas.filter(v=>!ids.has(v.id));
-    ventasGuardadas=[...ventasGuardadas,...nuevas];
-    // Limitar a últimas 500
-    if(ventasGuardadas.length>500)ventasGuardadas=ventasGuardadas.slice(-500);
-    localStorage.setItem('ventas_guardadas',JSON.stringify(ventasGuardadas));
-
-    // Cargar mensajes para detectar solicitudes de factura
-    await detectarSolicitudes(me.id, todas);
-
-    // Filtrar ventas con solicitud de factura
-    const conF=ventasGuardadas.filter(o=>
-      o.buyer?.billing_info?.doc_number||
-      o.buyer?.billing_info?.company_name||
-      o._pideFactura||
-      datosManual[o.id]
-    );
-
-    document.getElementById('nbadge').textContent=conF.length||todas.length;
+    // Obtener últimas 100 órdenes
+    setProgress('Obteniendo ventas recientes...',10);
+    const d=await mlGet(`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=100&offset=0`);
+    const ordenes=d.results||[];
     cont.innerHTML='';
 
-    if(conF.length===0){
-      err.innerHTML='<div class="info">ℹ️ Mostrando ventas recientes. Las que tengan datos de factura aparecerán destacadas.</div>';
-      todas.slice(0,20).forEach(o=>renderVenta(o,cont));
-    }else{
-      conF.slice().reverse().forEach(o=>renderVenta(o,cont));
+    const conFactura=[];
+    const total=ordenes.length;
+
+    // Revisar cada orden individualmente
+    for(let i=0;i<ordenes.length;i++){
+      const orden=ordenes[i];
+      const pct=10+Math.round((i/total)*80);
+      setProgress(`Revisando venta ${i+1} de ${total}...`,pct);
+
+      let tieneFactura=false;
+      let pideFacturaMensaje=false;
+      let mensajeTexto='';
+      let billingData={};
+
+      // 1. Consultar detalle de la orden para obtener billing_info
+      try{
+        const det=await mlGet(`https://api.mercadolibre.com/orders/${orden.id}`);
+        if(det.buyer?.billing_info?.doc_number||det.buyer?.billing_info?.company_name){
+          tieneFactura=true;
+          billingData=det.buyer.billing_info;
+          // Actualizar datos en la orden
+          if(!orden.buyer)orden.buyer={};
+          orden.buyer.billing_info=billingData;
+          orden.buyer.first_name=det.buyer.first_name||orden.buyer?.first_name||'';
+          orden.buyer.last_name=det.buyer.last_name||orden.buyer?.last_name||'';
+        }
+      }catch(e){}
+
+      // 2. Revisar mensajes buscando solicitud de factura
+      if(!tieneFactura){
+        try{
+          const packId=orden.pack_id||orden.id;
+          const msgs=await mlGet(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${me.id}?tag=post_sale`);
+          const textos=(msgs.messages||[]).map(m=>(m.text||'').toLowerCase()).join(' ');
+          if(KEYWORDS.some(k=>textos.includes(k))){
+            pideFacturaMensaje=true;
+            // Extraer fragmento relevante
+            for(const k of KEYWORDS){
+              const idx=textos.indexOf(k);
+              if(idx>=0){mensajeTexto=textos.substring(Math.max(0,idx-20),idx+100).trim();break;}
+            }
+          }
+        }catch(e){}
+      }
+
+      if(tieneFactura||pideFacturaMensaje||datosManual[orden.id]){
+        orden._pideFactura=pideFacturaMensaje;
+        orden._mensajeTexto=mensajeTexto;
+        conFactura.push(orden);
+        // Mostrar inmediatamente
+        renderVenta(orden,cont);
+      }
     }
+
+    setProgress('¡Listo!',100);
+    setTimeout(()=>{document.getElementById('progbox').style.display='none';},1500);
+
+    document.getElementById('nbadge').textContent=conFactura.length;
+
+    if(conFactura.length===0){
+      cont.innerHTML='<div class="loading" style="padding:40px">No se encontraron ventas con datos de factura ni solicitudes por mensaje.</div>';
+    }
+
   }catch(e){
     cont.innerHTML='';
+    document.getElementById('progbox').style.display='none';
     err.innerHTML=`<div class="err">⚠️ ${e.message}. <a href="#" onclick="cerrar()" style="color:var(--rojo)">Reconectar</a></div>`;
   }
-}
-
-async function detectarSolicitudes(userId, ordenes){
-  const keywords=['factura','boleta','rut','razón social','razon social','giro','tributario'];
-  for(const orden of ordenes.slice(0,30)){
-    try{
-      const msgs=await mlFetch(`https://api.mercadolibre.com/messages/packs/${orden.pack_id||orden.id}/sellers/${userId}?tag=post_sale`);
-      const textos=(msgs.messages||[]).map(m=>(m.text||'').toLowerCase()).join(' ');
-      if(keywords.some(k=>textos.includes(k))){
-        orden._pideFactura=true;
-        orden._mensajeFactura=textos.substring(0,200);
-        // Actualizar en guardadas
-        const idx=ventasGuardadas.findIndex(v=>v.id===orden.id);
-        if(idx>=0){ventasGuardadas[idx]._pideFactura=true;ventasGuardadas[idx]._mensajeFactura=orden._mensajeFactura;}
-      }
-    }catch(e){/* mensaje no disponible */}
-  }
-  localStorage.setItem('ventas_guardadas',JSON.stringify(ventasGuardadas));
 }
 
 function renderVenta(orden,cont){
@@ -271,6 +305,10 @@ function renderVenta(orden,cont){
   const giro=manual.giro||bill.business_type||'—';
   const link=`https://www.mercadolibre.cl/ventas/${id}/detalle`;
 
+  // Eliminar card existente si ya está
+  const existing=document.getElementById(`c${id}`);
+  if(existing)existing.remove();
+
   const card=document.createElement('div');
   card.className='vcard';
   card.id=`c${id}`;
@@ -280,7 +318,7 @@ function renderVenta(orden,cont){
         <div class="oid">Orden #${id}</div>
         <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
           ${yaf?'<span class="tag-f">✓ FACTURADA</span>':'<span class="tag-p">PENDIENTE</span>'}
-          ${pideF?'<span class="tag-msg">💬 PIDE FACTURA</span>':''}
+          ${pideF?'<span class="tag-msg">💬 PIDE FACTURA POR MENSAJE</span>':''}
         </div>
       </div>
       <div class="monto">$${Number(orden.total_amount||0).toLocaleString('es-CL')}</div>
@@ -292,7 +330,7 @@ function renderVenta(orden,cont){
       <div class="fila"><span class="flabel">RUT</span><span>${rut}</span></div>
       <div class="fila"><span class="flabel">Dirección</span><span>${dir}</span></div>
       <div class="fila"><span class="flabel">Giro</span><span>${giro}</span></div>
-      ${orden._mensajeFactura?`<div class="fila" style="margin-top:6px"><span class="flabel" style="color:var(--azul)">Mensaje</span><span style="font-size:12px;color:var(--gris)">"${orden._mensajeFactura}..."</span></div>`:''}
+      ${orden._mensajeTexto?`<div class="fila" style="margin-top:8px"><span class="flabel" style="color:var(--azul)">Mensaje</span><span style="font-size:12px;color:var(--gris);font-style:italic">"...${orden._mensajeTexto}..."</span></div>`:''}
     </div>
     <div class="acciones">
       <a href="${link}" target="_blank" class="btn-azul">👁 Ver en ML</a>
@@ -331,13 +369,21 @@ function guardarManual(id){
     giro:document.getElementById(`mg${id}`).value
   };
   localStorage.setItem('datos_manual',JSON.stringify(datosManual));
-  cargar();
+  alert('✅ Datos guardados');
+  toggleManual(id);
+  // Actualizar la card
+  const orden=document.getElementById(`c${id}`);
+  if(orden)cargar();
 }
 
 function marcar(id){
   facturadas[id]=!facturadas[id];
   localStorage.setItem('facturadas',JSON.stringify(facturadas));
-  cargar();
+  const btn=document.querySelector(`#c${id} .acciones button:last-child`);
+  if(btn){
+    if(facturadas[id]){btn.className='btn-done';btn.textContent='✓ Facturada';}
+    else{btn.className='btn-outline';btn.textContent='Marcar facturada';}
+  }
 }
 
 function cerrar(){
