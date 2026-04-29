@@ -99,9 +99,7 @@
   </div>
 </div>
 <script>
-const CID='6043593506541220';
-const CSEC='ZUggct6E0HGh3kJZk5jHqbahwpQrlctm';
-const RURI='https://administracion389.github.io/FACTURADOR/';
+const RURI='https://fanciful-platypus-723e4a.netlify.app';
 const PROXIES=[
   u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
@@ -109,8 +107,16 @@ const PROXIES=[
 ];
 const KEYWORDS=['factura','boleta','rut','razón social','razon social','giro','tributario','sii','necesito factura','quiero factura','solicito factura'];
 
-document.getElementById('btnauth').href=
-  `https://auth.mercadolibre.cl/authorization?response_type=code&client_id=${CID}&redirect_uri=${encodeURIComponent(RURI)}`;
+// Obtener config desde el proxy (sin exponer credenciales en el HTML)
+fetch('/.netlify/functions/proxy?action=config')
+  .then(r=>r.json())
+  .then(cfg=>{
+    document.getElementById('btnauth').href=
+      `https://auth.mercadolibre.cl/authorization?response_type=code&client_id=${cfg.clientId}&redirect_uri=${encodeURIComponent(RURI)}`;
+  })
+  .catch(()=>{
+    document.getElementById('btnauth').href='#';
+  });
 
 let token=localStorage.getItem('ml_token')||'';
 let rtoken=localStorage.getItem('ml_rtoken')||'';
@@ -157,8 +163,8 @@ async function mlPost(url,body){
 async function refrescar(){
   if(!rtoken)return;
   try{
-    const d=await mlPost('https://api.mercadolibre.com/oauth/token',
-      `grant_type=refresh_token&client_id=${CID}&client_secret=${CSEC}&refresh_token=${rtoken}`);
+    const r=await fetch(`/.netlify/functions/proxy?action=refresh&refresh_token=${encodeURIComponent(rtoken)}`);
+    const d=await r.json();
     if(d.access_token){
       token=d.access_token;rtoken=d.refresh_token||rtoken;
       localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
@@ -169,8 +175,8 @@ async function refrescar(){
 async function intercambiar(code){
   document.getElementById('auth').innerHTML='<div class="loading"><div class="spin"></div><br/>Conectando...</div>';
   try{
-    const d=await mlPost('https://api.mercadolibre.com/oauth/token',
-      `grant_type=authorization_code&client_id=${CID}&client_secret=${CSEC}&code=${code}&redirect_uri=${encodeURIComponent(RURI)}`);
+    const r=await fetch(`/.netlify/functions/proxy?action=token&code=${encodeURIComponent(code)}`);
+    const d=await r.json();
     if(d.access_token){
       token=d.access_token;rtoken=d.refresh_token||'';
       localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
