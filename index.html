@@ -30,13 +30,20 @@
     .btn-done{background:rgba(0,200,83,.1);border:1px solid var(--verde);color:var(--verde);padding:7px 15px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
     #app{display:none}
     .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
+    .topbar-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .topbar h2{font-size:19px;font-weight:600}
     .badge{background:var(--verde);color:#000;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;font-family:'IBM Plex Mono',monospace;margin-left:8px}
+    .mes-nav{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:6px 12px}
+    .mes-nav button{background:none;border:none;color:var(--texto);cursor:pointer;font-size:16px;padding:0 4px;line-height:1}
+    .mes-nav button:hover{color:var(--verde)}
+    .mes-label{font-family:'IBM Plex Mono',monospace;font-size:13px;min-width:110px;text-align:center}
+    .topbar-right{display:flex;gap:8px}
     .ventas{display:flex;flex-direction:column;gap:14px}
     .vcard{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:20px;transition:border-color .2s}
     .vcard:hover{border-color:var(--verde)}
     .vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px}
     .oid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gris)}
+    .fecha-venta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gris);margin-top:2px}
     .monto{font-size:19px;font-weight:700;color:var(--verde);font-family:'IBM Plex Mono',monospace}
     .producto{font-size:14px;font-weight:600;margin-bottom:12px}
     .datos{background:rgba(0,200,83,.04);border:1px solid rgba(0,200,83,.12);border-radius:7px;padding:14px;margin-bottom:12px}
@@ -46,12 +53,12 @@
     .acciones{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .tag-p{background:rgba(248,81,73,.12);color:var(--rojo);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
     .tag-f{background:rgba(0,200,83,.12);color:var(--verde);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
-    .tag-msg{background:rgba(88,166,255,.12);color:var(--azul);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
+    .tag-empresa{background:rgba(88,166,255,.12);color:var(--azul);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
+    .tag-msg{background:rgba(255,180,0,.12);color:#ffb400;font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
     .loading{text-align:center;padding:50px;color:var(--gris);font-family:'IBM Plex Mono',monospace;font-size:13px}
     .spin{display:inline-block;width:22px;height:22px;border:2px solid var(--borde);border-top-color:var(--verde);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
     @keyframes spin{to{transform:rotate(360deg)}}
     .err{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);color:var(--rojo);padding:14px;border-radius:7px;font-size:13px;margin-bottom:16px}
-    .info{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.18);border-radius:7px;padding:11px 14px;font-size:13px;color:var(--azul);margin-bottom:16px}
     .sep{border:none;border-top:1px solid var(--borde);margin:16px 0}
     .progress{background:var(--panel);border:1px solid var(--borde);border-radius:7px;padding:20px;text-align:center;margin-bottom:16px}
     .progress p{font-size:13px;color:var(--gris);margin-bottom:10px}
@@ -61,6 +68,10 @@
     .manual-form input{margin-bottom:7px;font-size:12px;padding:7px 11px}
     .manual-form label{font-size:11px;color:var(--gris);display:block;margin-bottom:3px}
     .manual-form h5{font-size:12px;color:var(--verde);margin-bottom:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px}
+    .resumen{background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap}
+    .resumen-item{display:flex;flex-direction:column;gap:3px}
+    .resumen-num{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--verde)}
+    .resumen-label{font-size:11px;color:var(--gris)}
   </style>
 </head>
 <body>
@@ -73,20 +84,34 @@
   <div id="auth">
     <h2>Facturador PuntoMed</h2>
     <div class="card">
-      <h3>Pegar Access Token</h3>
-      <p>Pega aquí el access token obtenido con el comando del cmd:</p>
-      <input type="text" id="tinput" placeholder="APP_USR-..."/>
-      <button class="btn" onclick="conectar()">✅ Conectar</button>
-      <hr class="sep"/>
-      <h3>¿Sin token?</h3>
-      <p>Haz clic para autorizar tu cuenta de ML:</p>
+      <h3>Iniciar sesión</h3>
+      <p>Conecta tu cuenta de Mercado Libre para ver las ventas que requieren factura.</p>
       <a id="btnauth" class="btn" href="#">🔗 Autorizar con Mercado Libre</a>
     </div>
   </div>
   <div id="app">
     <div class="topbar">
-      <div><h2>Ventas con solicitud de factura<span class="badge" id="nbadge">0</span></h2></div>
-      <button class="btn-outline" onclick="cargar()">↻ Actualizar</button>
+      <div class="topbar-left">
+        <div>
+          <h2 style="display:inline">Ventas a facturar</h2>
+          <span class="badge" id="nbadge">0</span>
+        </div>
+        <div class="mes-nav">
+          <button onclick="cambiarMes(-1)">&#8249;</button>
+          <span class="mes-label" id="mes-label"></span>
+          <button onclick="cambiarMes(1)">&#8250;</button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-outline" onclick="cargar()">↻ Actualizar</button>
+        <button class="btn-outline" onclick="cerrar()" style="color:var(--rojo);border-color:var(--rojo)">Salir</button>
+      </div>
+    </div>
+    <div id="resumen" class="resumen" style="display:none">
+      <div class="resumen-item"><span class="resumen-num" id="r-total">0</span><span class="resumen-label">Total a facturar</span></div>
+      <div class="resumen-item"><span class="resumen-num" id="r-empresa">0</span><span class="resumen-label">Empresas (billing_info)</span></div>
+      <div class="resumen-item"><span class="resumen-num" id="r-mensaje">0</span><span class="resumen-label">Solicitan por mensaje</span></div>
+      <div class="resumen-item"><span class="resumen-num" id="r-monto" style="color:var(--azul)">$0</span><span class="resumen-label">Monto total</span></div>
     </div>
     <div id="errbox"></div>
     <div id="progbox" style="display:none">
@@ -100,100 +125,103 @@
 </div>
 <script>
 const RURI='https://fanciful-platypus-723e4a.netlify.app';
-const PROXIES=[
-  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  u=>`https://thingproxy.freeboard.io/fetch/${u}`
-];
-const KEYWORDS=['factura','boleta','rut','razón social','razon social','giro','tributario','sii','necesito factura','quiero factura','solicito factura'];
+const KEYWORDS=['factura','boleta','rut','razón social','razon social','giro','tributario','sii','necesito factura','quiero factura','solicito factura','requiero factura','datos de factura','facturar'];
 
-// Obtener config desde el proxy (sin exponer credenciales en el HTML)
+let token=localStorage.getItem('ml_token')||'';
+let rtoken=localStorage.getItem('ml_rtoken')||'';
+let userId=null;
+let facturadas=JSON.parse(localStorage.getItem('facturadas')||'{}');
+
+// Mes actual por defecto
+const hoy=new Date();
+let mesVer=hoy.getMonth(); // 0-11
+let anioVer=hoy.getFullYear();
+
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function actualizarLabelMes(){
+  document.getElementById('mes-label').textContent=MESES[mesVer]+' '+anioVer;
+}
+
+function cambiarMes(delta){
+  mesVer+=delta;
+  if(mesVer<0){mesVer=11;anioVer--;}
+  if(mesVer>11){mesVer=0;anioVer++;}
+  actualizarLabelMes();
+  cargar();
+}
+
+// Cargar config desde proxy
 fetch('/.netlify/functions/proxy?action=config')
   .then(r=>r.json())
   .then(cfg=>{
     document.getElementById('btnauth').href=
       `https://auth.mercadolibre.cl/authorization?response_type=code&client_id=${cfg.clientId}&redirect_uri=${encodeURIComponent(RURI)}`;
-  })
-  .catch(()=>{
-    document.getElementById('btnauth').href='#';
   });
-
-let token=localStorage.getItem('ml_token')||'';
-let rtoken=localStorage.getItem('ml_rtoken')||'';
-let facturadas=JSON.parse(localStorage.getItem('facturadas')||'{}');
-let datosManual=JSON.parse(localStorage.getItem('datos_manual')||'{}');
-let userId=null;
 
 window.addEventListener('load',()=>{
   const p=new URLSearchParams(window.location.search);
   const code=p.get('code');
   if(code){window.history.replaceState({},document.title,RURI);intercambiar(code);return;}
-  if(token){mostrarApp();cargar();}
+  if(token){mostrarApp();actualizarLabelMes();cargar();}
 });
 
-async function fetchProxy(url,opts={}){
-  let lastErr;
-  for(const proxy of PROXIES){
-    try{
-      const r=await fetch(proxy(url),{...opts,signal:AbortSignal.timeout(10000)});
-      if(r.status===401){await refrescar();const r2=await fetch(proxy(url),{...opts,headers:{...opts.headers,'Authorization':`Bearer ${token}`}});if(r2.ok)return await r2.json();}
-      if(r.ok)return await r.json();
-      lastErr=new Error(`HTTP ${r.status}`);
-    }catch(e){lastErr=e;}
-  }
-  throw lastErr||new Error('Sin conexión');
-}
-
+// Llamada a ML API a través del proxy de Netlify
 async function mlGet(url){
-  return fetchProxy(url,{headers:{'Authorization':`Bearer ${token}`}});
-}
+  // Intentar primero con el token actual
+  let resp=await fetch(`/.netlify/functions/proxy?action=api&url=${encodeURIComponent(url)}`,{
+    headers:{'Authorization':`Bearer ${token}`}
+  });
+  let data=await resp.json();
 
-async function mlPost(url,body){
-  let lastErr;
-  for(const proxy of PROXIES){
-    try{
-      const r=await fetch(proxy(url),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(10000)});
-      if(r.ok)return await r.json();
-      lastErr=new Error(`HTTP ${r.status}`);
-    }catch(e){lastErr=e;}
+  // Si token expiró, renovar y reintentar
+  if(resp.status===401&&rtoken){
+    const ok=await refrescar();
+    if(ok){
+      resp=await fetch(`/.netlify/functions/proxy?action=api&url=${encodeURIComponent(url)}`,{
+        headers:{'Authorization':`Bearer ${token}`}
+      });
+      data=await resp.json();
+    }
   }
-  throw lastErr||new Error('Sin conexión');
+  if(!resp.ok) throw new Error(data.message||`HTTP ${resp.status}`);
+  return data;
 }
 
 async function refrescar(){
-  if(!rtoken)return;
   try{
     const r=await fetch(`/.netlify/functions/proxy?action=refresh&refresh_token=${encodeURIComponent(rtoken)}`);
     const d=await r.json();
     if(d.access_token){
-      token=d.access_token;rtoken=d.refresh_token||rtoken;
-      localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
+      token=d.access_token;
+      rtoken=d.refresh_token||rtoken;
+      localStorage.setItem('ml_token',token);
+      localStorage.setItem('ml_rtoken',rtoken);
+      return true;
     }
   }catch(e){}
+  return false;
 }
 
 async function intercambiar(code){
-  document.getElementById('auth').innerHTML='<div class="loading"><div class="spin"></div><br/>Conectando...</div>';
+  document.getElementById('auth').innerHTML='<div class="loading"><div class="spin"></div><br/>Conectando con Mercado Libre...</div>';
   try{
     const r=await fetch(`/.netlify/functions/proxy?action=token&code=${encodeURIComponent(code)}`);
     const d=await r.json();
     if(d.access_token){
-      token=d.access_token;rtoken=d.refresh_token||'';
-      localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
-      mostrarApp();cargar();
+      token=d.access_token;
+      rtoken=d.refresh_token||'';
+      localStorage.setItem('ml_token',token);
+      localStorage.setItem('ml_rtoken',rtoken);
+      mostrarApp();
+      actualizarLabelMes();
+      cargar();
     }else{
-      document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error: ${JSON.stringify(d)}</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
+      document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error al conectar: ${JSON.stringify(d)}</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
     }
   }catch(e){
-    document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error de conexión. Usa la opción de pegar token.</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
+    document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error de conexión.</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
   }
-}
-
-function conectar(){
-  const v=document.getElementById('tinput').value.trim();
-  if(!v){alert('Pega el token primero');return;}
-  token=v;localStorage.setItem('ml_token',v);
-  mostrarApp();cargar();
 }
 
 function mostrarApp(){
@@ -211,58 +239,71 @@ async function cargar(){
   const cont=document.getElementById('ventas');
   const err=document.getElementById('errbox');
   err.innerHTML='';
-  cont.innerHTML='<div class="loading"><div class="spin"></div><br/>Obteniendo ventas...</div>';
+  cont.innerHTML='<div class="loading"><div class="spin"></div><br/>Obteniendo ventas de '+MESES[mesVer]+' '+anioVer+'...</div>';
   document.getElementById('nbadge').textContent='...';
+  document.getElementById('resumen').style.display='none';
+
+  // Rango de fechas del mes seleccionado
+  const fechaInicio=new Date(anioVer,mesVer,1);
+  const fechaFin=new Date(anioVer,mesVer+1,0,23,59,59);
+  const desde=fechaInicio.toISOString().split('T')[0]+'T00:00:00.000-00:00';
+  const hasta=fechaFin.toISOString().split('T')[0]+'T23:59:59.000-00:00';
 
   try{
-    // Obtener usuario
     const me=await mlGet('https://api.mercadolibre.com/users/me');
     userId=me.id;
     document.getElementById('usuario').textContent=me.nickname||'';
 
-    // Obtener últimas 100 órdenes
-    setProgress('Obteniendo ventas recientes...',10);
-    const d=await mlGet(`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=100&offset=0`);
+    setProgress('Obteniendo ventas del mes...',10);
+
+    // Traer órdenes del mes con filtro de fecha
+    const url=`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=50&offset=0&order.date_created.from=${encodeURIComponent(desde)}&order.date_created.to=${encodeURIComponent(hasta)}`;
+    const d=await mlGet(url);
     const ordenes=d.results||[];
     cont.innerHTML='';
 
     const conFactura=[];
     const total=ordenes.length;
 
-    // Revisar cada orden individualmente
+    if(total===0){
+      document.getElementById('progbox').style.display='none';
+      document.getElementById('nbadge').textContent='0';
+      cont.innerHTML=`<div class="loading" style="padding:40px">No hay ventas en ${MESES[mesVer]} ${anioVer}.</div>`;
+      return;
+    }
+
     for(let i=0;i<ordenes.length;i++){
       const orden=ordenes[i];
       const pct=10+Math.round((i/total)*80);
       setProgress(`Revisando venta ${i+1} de ${total}...`,pct);
 
-      let tieneFactura=false;
+      let tieneEmpresa=false;
       let pideFacturaMensaje=false;
       let mensajeTexto='';
       let billingData={};
 
-      // 1. Consultar detalle de la orden para obtener billing_info
+      // 1. Datos de factura en billing_info (empresas)
       try{
         const det=await mlGet(`https://api.mercadolibre.com/orders/${orden.id}`);
-        if(det.buyer?.billing_info?.doc_number||det.buyer?.billing_info?.company_name){
-          tieneFactura=true;
-          billingData=det.buyer.billing_info;
-          // Actualizar datos en la orden
+        const bill=det.buyer?.billing_info||{};
+        if(bill.doc_number||bill.company_name||bill.business_type){
+          tieneEmpresa=true;
+          billingData=bill;
           if(!orden.buyer)orden.buyer={};
-          orden.buyer.billing_info=billingData;
+          orden.buyer.billing_info=bill;
           orden.buyer.first_name=det.buyer.first_name||orden.buyer?.first_name||'';
           orden.buyer.last_name=det.buyer.last_name||orden.buyer?.last_name||'';
         }
       }catch(e){}
 
-      // 2. Revisar mensajes buscando solicitud de factura
-      if(!tieneFactura){
+      // 2. Solicitud de factura por mensaje
+      if(!tieneEmpresa){
         try{
           const packId=orden.pack_id||orden.id;
           const msgs=await mlGet(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${me.id}?tag=post_sale`);
           const textos=(msgs.messages||[]).map(m=>(m.text||'').toLowerCase()).join(' ');
           if(KEYWORDS.some(k=>textos.includes(k))){
             pideFacturaMensaje=true;
-            // Extraer fragmento relevante
             for(const k of KEYWORDS){
               const idx=textos.indexOf(k);
               if(idx>=0){mensajeTexto=textos.substring(Math.max(0,idx-20),idx+100).trim();break;}
@@ -271,28 +312,43 @@ async function cargar(){
         }catch(e){}
       }
 
-      if(tieneFactura||pideFacturaMensaje||datosManual[orden.id]){
+      if(tieneEmpresa||pideFacturaMensaje){
+        orden._tieneEmpresa=tieneEmpresa;
         orden._pideFactura=pideFacturaMensaje;
         orden._mensajeTexto=mensajeTexto;
         conFactura.push(orden);
-        // Mostrar inmediatamente
         renderVenta(orden,cont);
       }
     }
 
     setProgress('¡Listo!',100);
-    setTimeout(()=>{document.getElementById('progbox').style.display='none';},1500);
+    setTimeout(()=>{document.getElementById('progbox').style.display='none';},1200);
 
     document.getElementById('nbadge').textContent=conFactura.length;
 
+    // Resumen
+    const nEmpresa=conFactura.filter(o=>o._tieneEmpresa).length;
+    const nMensaje=conFactura.filter(o=>o._pideFactura).length;
+    const montoTotal=conFactura.reduce((s,o)=>s+(o.total_amount||0),0);
+    document.getElementById('r-total').textContent=conFactura.length;
+    document.getElementById('r-empresa').textContent=nEmpresa;
+    document.getElementById('r-mensaje').textContent=nMensaje;
+    document.getElementById('r-monto').textContent='$'+montoTotal.toLocaleString('es-CL');
+    document.getElementById('resumen').style.display='flex';
+
     if(conFactura.length===0){
-      cont.innerHTML='<div class="loading" style="padding:40px">No se encontraron ventas con datos de factura ni solicitudes por mensaje.</div>';
+      cont.innerHTML=`<div class="loading" style="padding:40px">No se encontraron ventas que requieran factura en ${MESES[mesVer]} ${anioVer}.</div>`;
     }
 
   }catch(e){
     cont.innerHTML='';
     document.getElementById('progbox').style.display='none';
-    err.innerHTML=`<div class="err">⚠️ ${e.message}. <a href="#" onclick="cerrar()" style="color:var(--rojo)">Reconectar</a></div>`;
+    if(e.message&&e.message.includes('401')){
+      // Token expirado y no se pudo renovar
+      err.innerHTML=`<div class="err">⚠️ Sesión expirada. <a href="#" onclick="cerrar()" style="color:var(--rojo)">Volver a conectar</a></div>`;
+    } else {
+      err.innerHTML=`<div class="err">⚠️ ${e.message}. <a href="#" onclick="cargar()" style="color:var(--rojo)">Reintentar</a></div>`;
+    }
   }
 }
 
@@ -302,16 +358,15 @@ function renderVenta(orden,cont){
   const item=orden.order_items?.[0]?.item||{};
   const id=orden.id;
   const yaf=facturadas[id];
-  const manual=datosManual[id]||{};
-  const pideF=orden._pideFactura;
 
-  const razon=manual.razon||bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'—');
-  const rut=manual.rut||bill.doc_number||'—';
-  const dir=manual.dir||bill.city_name||'—';
-  const giro=manual.giro||bill.business_type||'—';
+  const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'—');
+  const rut=bill.doc_number||'—';
+  const giro=bill.business_type||'—';
+  const ciudad=bill.city_name||'—';
   const link=`https://www.mercadolibre.cl/ventas/${id}/detalle`;
 
-  // Eliminar card existente si ya está
+  const fechaOrden=orden.date_created?new Date(orden.date_created).toLocaleDateString('es-CL'):'';
+
   const existing=document.getElementById(`c${id}`);
   if(existing)existing.remove();
 
@@ -322,78 +377,56 @@ function renderVenta(orden,cont){
     <div class="vcard-top">
       <div>
         <div class="oid">Orden #${id}</div>
-        <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
+        <div class="fecha-venta">${fechaOrden}</div>
+        <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
           ${yaf?'<span class="tag-f">✓ FACTURADA</span>':'<span class="tag-p">PENDIENTE</span>'}
-          ${pideF?'<span class="tag-msg">💬 PIDE FACTURA POR MENSAJE</span>':''}
+          ${orden._tieneEmpresa?'<span class="tag-empresa">🏢 EMPRESA</span>':''}
+          ${orden._pideFactura?'<span class="tag-msg">💬 PIDE POR MENSAJE</span>':''}
         </div>
       </div>
       <div class="monto">$${Number(orden.total_amount||0).toLocaleString('es-CL')}</div>
     </div>
     <div class="producto">${item.title||'Producto sin título'}</div>
     <div class="datos">
-      <h4>📋 Datos del comprador</h4>
+      <h4>📋 Datos para facturar</h4>
       <div class="fila"><span class="flabel">Razón social</span><span>${razon}</span></div>
       <div class="fila"><span class="flabel">RUT</span><span>${rut}</span></div>
-      <div class="fila"><span class="flabel">Dirección</span><span>${dir}</span></div>
       <div class="fila"><span class="flabel">Giro</span><span>${giro}</span></div>
-      ${orden._mensajeTexto?`<div class="fila" style="margin-top:8px"><span class="flabel" style="color:var(--azul)">Mensaje</span><span style="font-size:12px;color:var(--gris);font-style:italic">"...${orden._mensajeTexto}..."</span></div>`:''}
+      <div class="fila"><span class="flabel">Ciudad</span><span>${ciudad}</span></div>
+      ${orden._mensajeTexto?`<div class="fila" style="margin-top:6px"><span class="flabel" style="color:#ffb400">Mensaje</span><span style="font-size:12px;color:var(--gris);font-style:italic">"...${orden._mensajeTexto}..."</span></div>`:''}
     </div>
     <div class="acciones">
       <a href="${link}" target="_blank" class="btn-azul">👁 Ver en ML</a>
-      <button class="btn-outline" onclick="toggleManual('${id}')">✏️ Ingresar datos</button>
       <button class="${yaf?'btn-done':'btn-outline'}" onclick="marcar('${id}')">
-        ${yaf?'✓ Facturada':'Marcar facturada'}
+        ${yaf?'✓ Facturada':'Marcar como facturada'}
       </button>
-    </div>
-    <div id="mf${id}" style="display:none">
-      <div class="manual-form">
-        <h5>Ingresar datos manualmente</h5>
-        <label>Razón Social / Nombre</label>
-        <input type="text" id="mr${id}" placeholder="Ej: ESTHETIC ANGELS SPA" value="${manual.razon||''}"/>
-        <label>RUT</label>
-        <input type="text" id="mu${id}" placeholder="Ej: 77677154-6" value="${manual.rut||''}"/>
-        <label>Dirección</label>
-        <input type="text" id="md${id}" placeholder="Ej: Badajoz 100, Las Condes" value="${manual.dir||''}"/>
-        <label>Giro</label>
-        <input type="text" id="mg${id}" placeholder="Ej: Servicios de estética" value="${manual.giro||''}"/>
-        <button class="btn" style="margin-top:4px" onclick="guardarManual('${id}')">💾 Guardar datos</button>
-      </div>
     </div>`;
   cont.appendChild(card);
-}
-
-function toggleManual(id){
-  const el=document.getElementById(`mf${id}`);
-  el.style.display=el.style.display==='none'?'block':'none';
-}
-
-function guardarManual(id){
-  datosManual[id]={
-    razon:document.getElementById(`mr${id}`).value,
-    rut:document.getElementById(`mu${id}`).value,
-    dir:document.getElementById(`md${id}`).value,
-    giro:document.getElementById(`mg${id}`).value
-  };
-  localStorage.setItem('datos_manual',JSON.stringify(datosManual));
-  alert('✅ Datos guardados');
-  toggleManual(id);
-  // Actualizar la card
-  const orden=document.getElementById(`c${id}`);
-  if(orden)cargar();
 }
 
 function marcar(id){
   facturadas[id]=!facturadas[id];
   localStorage.setItem('facturadas',JSON.stringify(facturadas));
-  const btn=document.querySelector(`#c${id} .acciones button:last-child`);
-  if(btn){
-    if(facturadas[id]){btn.className='btn-done';btn.textContent='✓ Facturada';}
-    else{btn.className='btn-outline';btn.textContent='Marcar facturada';}
+  const card=document.getElementById(`c${id}`);
+  if(card){
+    const btn=card.querySelector('.acciones button');
+    const tags=card.querySelector('.vcard-top div div');
+    if(facturadas[id]){
+      btn.className='btn-done';btn.textContent='✓ Facturada';
+      // Actualizar tag
+      const tagP=tags.querySelector('.tag-p');
+      if(tagP)tagP.outerHTML='<span class="tag-f">✓ FACTURADA</span>';
+    }else{
+      btn.className='btn-outline';btn.textContent='Marcar como facturada';
+      const tagF=tags.querySelector('.tag-f');
+      if(tagF)tagF.outerHTML='<span class="tag-p">PENDIENTE</span>';
+    }
   }
 }
 
 function cerrar(){
   localStorage.removeItem('ml_token');
+  localStorage.removeItem('ml_rtoken');
   location.reload();
 }
 </script>
