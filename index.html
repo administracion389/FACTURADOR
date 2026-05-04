@@ -254,12 +254,23 @@ async function cargar(){
     userId=me.id;
     document.getElementById('usuario').textContent=me.nickname||'';
 
-    setProgress('Obteniendo ventas del mes...',10);
+    setProgress('Obteniendo ventas del mes...',5);
 
-    // Traer órdenes del mes con filtro de fecha
-    const url=`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=50&offset=0&order.date_created.from=${encodeURIComponent(desde)}&order.date_created.to=${encodeURIComponent(hasta)}`;
-    const d=await mlGet(url);
-    const ordenes=d.results||[];
+    // Traer TODAS las órdenes del mes con paginación
+    const ordenes=[];
+    let offset=0;
+    const limit=50;
+    let total_ml=999;
+    while(offset<total_ml){
+      const url=`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=${limit}&offset=${offset}&order.date_created.from=${encodeURIComponent(desde)}&order.date_created.to=${encodeURIComponent(hasta)}`;
+      const d=await mlGet(url);
+      total_ml=d.paging?.total||0;
+      const batch=d.results||[];
+      if(batch.length===0)break;
+      ordenes.push(...batch);
+      offset+=limit;
+      setProgress(`Obteniendo ventas... ${ordenes.length} de ${total_ml}`,5+Math.round((ordenes.length/Math.max(total_ml,1))*20));
+    }
     cont.innerHTML='';
 
     const conFactura=[];
@@ -274,7 +285,7 @@ async function cargar(){
 
     for(let i=0;i<ordenes.length;i++){
       const orden=ordenes[i];
-      const pct=10+Math.round((i/total)*80);
+      const pct=25+Math.round((i/total)*70);
       setProgress(`Revisando venta ${i+1} de ${total}...`,pct);
 
       let tieneEmpresa=false;
