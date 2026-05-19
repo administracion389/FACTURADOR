@@ -6,72 +6,92 @@
   <title>Facturador PuntoMed</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
   <style>
-    :root{--verde:#00c853;--fondo:#0d1117;--panel:#161b22;--borde:#30363d;--texto:#e6edf3;--gris:#8b949e;--rojo:#f85149;--azul:#58a6ff}
+    :root{--verde:#00c853;--fondo:#0d1117;--panel:#161b22;--borde:#30363d;--texto:#e6edf3;--gris:#8b949e;--rojo:#f85149;--azul:#58a6ff;--amarillo:#ffb400}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'IBM Plex Sans',sans-serif;background:var(--fondo);color:var(--texto);min-height:100vh}
     header{background:var(--panel);border-bottom:1px solid var(--borde);padding:14px 28px;display:flex;align-items:center;gap:14px}
     .logo{background:var(--verde);color:#000;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;padding:5px 10px;border-radius:4px}
     header h1{font-size:17px;font-weight:600}
     #usuario{font-size:12px;color:var(--gris);margin-left:auto;font-family:'IBM Plex Mono',monospace}
-    .container{max-width:1000px;margin:0 auto;padding:28px 20px}
+    .container{max-width:1020px;margin:0 auto;padding:24px 20px}
     #auth{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:75vh;gap:20px}
     #auth h2{font-size:24px;font-weight:300}
     .card{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:22px;max-width:480px;width:100%}
     .card h3{font-size:15px;margin-bottom:6px}
     .card p{font-size:13px;color:var(--gris);margin-bottom:14px;line-height:1.5}
-    input[type=text]{width:100%;background:var(--fondo);border:1px solid var(--borde);color:var(--texto);padding:9px 13px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:13px;margin-bottom:10px;outline:none}
-    input[type=text]:focus{border-color:var(--verde)}
     .btn{background:var(--verde);color:#000;border:none;padding:11px 20px;font-size:14px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;border-radius:6px;cursor:pointer;width:100%;display:block;text-align:center;text-decoration:none;transition:opacity .2s}
     .btn:hover{opacity:.85}
-    .btn-outline{background:transparent;border:1px solid var(--borde);color:var(--texto);padding:7px 15px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:border-color .2s}
+    .btn-sm{background:var(--verde);color:#000;border:none;padding:7px 14px;font-size:13px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;border-radius:6px;cursor:pointer;text-decoration:none;transition:opacity .2s;white-space:nowrap}
+    .btn-sm:hover{opacity:.85}
+    .btn-outline{background:transparent;border:1px solid var(--borde);color:var(--texto);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:border-color .2s;white-space:nowrap}
     .btn-outline:hover{border-color:var(--verde);color:var(--verde)}
-    .btn-azul{background:transparent;border:1px solid var(--azul);color:var(--azul);padding:7px 15px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;text-decoration:none;transition:background .2s}
+    .btn-azul{background:transparent;border:1px solid var(--azul);color:var(--azul);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;text-decoration:none;transition:background .2s;white-space:nowrap}
     .btn-azul:hover{background:rgba(88,166,255,.1)}
-    .btn-done{background:rgba(0,200,83,.1);border:1px solid var(--verde);color:var(--verde);padding:7px 15px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
+    .btn-done{background:rgba(0,200,83,.1);border:1px solid var(--verde);color:var(--verde);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap}
+    .btn-amarillo{background:transparent;border:1px solid var(--amarillo);color:var(--amarillo);padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap}
     #app{display:none}
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
-    .topbar-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .topbar h2{font-size:19px;font-weight:600}
-    .badge{background:var(--verde);color:#000;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;font-family:'IBM Plex Mono',monospace;margin-left:8px}
-    .mes-nav{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:6px 12px}
-    .mes-nav button{background:none;border:none;color:var(--texto);cursor:pointer;font-size:16px;padding:0 4px;line-height:1}
+    /* Tabs */
+    .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--borde);padding-bottom:0}
+    .tab{background:none;border:none;color:var(--gris);padding:10px 18px;font-size:14px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s}
+    .tab:hover{color:var(--texto)}
+    .tab.active{color:var(--verde);border-bottom-color:var(--verde);font-weight:600}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    /* Topbar facturador */
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+    .topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .topbar h2{font-size:18px;font-weight:600}
+    .badge{background:var(--verde);color:#000;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:'IBM Plex Mono',monospace;margin-left:6px}
+    .mes-nav{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:5px 10px}
+    .mes-nav button{background:none;border:none;color:var(--texto);cursor:pointer;font-size:16px;padding:0 3px;line-height:1}
     .mes-nav button:hover{color:var(--verde)}
-    .mes-label{font-family:'IBM Plex Mono',monospace;font-size:13px;min-width:110px;text-align:center}
-    .topbar-right{display:flex;gap:8px}
-    .ventas{display:flex;flex-direction:column;gap:14px}
-    .vcard{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:20px;transition:border-color .2s}
-    .vcard:hover{border-color:var(--verde)}
-    .vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+    .mes-label{font-family:'IBM Plex Mono',monospace;font-size:12px;min-width:100px;text-align:center}
+    .topbar-right{display:flex;gap:6px;flex-wrap:wrap}
+    /* Filtro fecha */
+    .fecha-filtro{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:6px 12px;margin-bottom:16px;flex-wrap:wrap}
+    .fecha-filtro label{font-size:12px;color:var(--gris)}
+    .fecha-filtro input[type=date]{background:var(--fondo);border:1px solid var(--borde);color:var(--texto);padding:5px 10px;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none}
+    .fecha-filtro input[type=date]:focus{border-color:var(--verde)}
+    /* Ventas */
+    .ventas{display:flex;flex-direction:column;gap:12px}
+    .vcard{background:var(--panel);border:1px solid var(--borde);border-radius:10px;padding:18px;transition:border-color .2s}
+    .vcard:hover{border-color:rgba(0,200,83,.4)}
+    .vcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px}
     .oid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gris)}
     .fecha-venta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gris);margin-top:2px}
-    .monto{font-size:19px;font-weight:700;color:var(--verde);font-family:'IBM Plex Mono',monospace}
-    .producto{font-size:14px;font-weight:600;margin-bottom:12px}
-    .datos{background:rgba(0,200,83,.04);border:1px solid rgba(0,200,83,.12);border-radius:7px;padding:14px;margin-bottom:12px}
-    .datos h4{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--verde);margin-bottom:10px;font-family:'IBM Plex Mono',monospace}
-    .fila{display:flex;gap:8px;margin-bottom:5px;font-size:13px}
-    .flabel{color:var(--gris);min-width:85px;font-size:12px}
-    .acciones{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .monto{font-size:20px;font-weight:700;color:var(--verde);font-family:'IBM Plex Mono',monospace}
+    .productos-list{font-size:13px;color:var(--texto);margin-bottom:12px;line-height:1.6}
+    .productos-list span{display:block}
+    .datos{background:rgba(0,200,83,.04);border:1px solid rgba(0,200,83,.12);border-radius:7px;padding:13px;margin-bottom:12px}
+    .datos h4{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--verde);margin-bottom:9px;font-family:'IBM Plex Mono',monospace}
+    .fila{display:flex;gap:8px;margin-bottom:4px;font-size:13px;align-items:flex-start}
+    .flabel{color:var(--gris);min-width:90px;font-size:12px;flex-shrink:0}
+    .acciones{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
     .tag-p{background:rgba(248,81,73,.12);color:var(--rojo);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
     .tag-f{background:rgba(0,200,83,.12);color:var(--verde);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
     .tag-empresa{background:rgba(88,166,255,.12);color:var(--azul);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
-    .tag-msg{background:rgba(255,180,0,.12);color:#ffb400;font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
+    .tag-msg{background:rgba(255,180,0,.12);color:var(--amarillo);font-size:10px;padding:2px 7px;border-radius:4px;font-family:'IBM Plex Mono',monospace}
     .loading{text-align:center;padding:50px;color:var(--gris);font-family:'IBM Plex Mono',monospace;font-size:13px}
     .spin{display:inline-block;width:22px;height:22px;border:2px solid var(--borde);border-top-color:var(--verde);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .err{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);color:var(--rojo);padding:14px;border-radius:7px;font-size:13px;margin-bottom:16px}
-    .sep{border:none;border-top:1px solid var(--borde);margin:16px 0}
-    .progress{background:var(--panel);border:1px solid var(--borde);border-radius:7px;padding:20px;text-align:center;margin-bottom:16px}
-    .progress p{font-size:13px;color:var(--gris);margin-bottom:10px}
+    .err{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);color:var(--rojo);padding:13px;border-radius:7px;font-size:13px;margin-bottom:14px}
+    .progress{background:var(--panel);border:1px solid var(--borde);border-radius:7px;padding:18px;text-align:center;margin-bottom:14px}
+    .progress p{font-size:13px;color:var(--gris);margin-bottom:9px}
     .pbar{background:var(--borde);border-radius:4px;height:6px;overflow:hidden}
     .pfill{background:var(--verde);height:100%;border-radius:4px;transition:width .3s}
-    .manual-form{background:rgba(0,0,0,.3);border:1px solid var(--borde);border-radius:7px;padding:14px;margin-top:10px}
-    .manual-form input{margin-bottom:7px;font-size:12px;padding:7px 11px}
-    .manual-form label{font-size:11px;color:var(--gris);display:block;margin-bottom:3px}
-    .manual-form h5{font-size:12px;color:var(--verde);margin-bottom:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px}
-    .resumen{background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap}
-    .resumen-item{display:flex;flex-direction:column;gap:3px}
-    .resumen-num{font-size:22px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--verde)}
+    .resumen{background:var(--panel);border:1px solid var(--borde);border-radius:8px;padding:13px 18px;margin-bottom:18px;display:flex;gap:22px;flex-wrap:wrap}
+    .resumen-item{display:flex;flex-direction:column;gap:2px}
+    .resumen-num{font-size:21px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--verde)}
     .resumen-label{font-size:11px;color:var(--gris)}
+    /* Clientes tab */
+    .clientes-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+    .clientes-bar h2{font-size:18px;font-weight:600}
+    .cliente-table{width:100%;border-collapse:collapse;font-size:13px}
+    .cliente-table th{background:var(--panel);border-bottom:2px solid var(--borde);padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--gris)}
+    .cliente-table td{padding:10px 12px;border-bottom:1px solid var(--borde);vertical-align:top}
+    .cliente-table tr:hover td{background:rgba(255,255,255,.02)}
+    .table-wrap{overflow-x:auto;border:1px solid var(--borde);border-radius:8px}
+    .empty-msg{text-align:center;padding:40px;color:var(--gris);font-family:'IBM Plex Mono',monospace;font-size:13px}
   </style>
 </head>
 <body>
@@ -81,6 +101,7 @@
   <span id="usuario"></span>
 </header>
 <div class="container">
+  <!-- AUTH -->
   <div id="auth">
     <h2>Facturador PuntoMed</h2>
     <div class="card">
@@ -89,69 +110,102 @@
       <a id="btnauth" class="btn" href="#">🔗 Autorizar con Mercado Libre</a>
     </div>
   </div>
+  <!-- APP -->
   <div id="app">
-    <div class="topbar">
-      <div class="topbar-left">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('tab-facturador')">📋 Facturador</button>
+      <button class="tab" onclick="showTab('tab-clientes')">👥 Base de Clientes</button>
+    </div>
+
+    <!-- TAB FACTURADOR -->
+    <div id="tab-facturador" class="tab-content active">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div>
+            <h2 style="display:inline">Ventas a facturar</h2>
+            <span class="badge" id="nbadge">0</span>
+          </div>
+          <div class="mes-nav">
+            <button onclick="cambiarMes(-1)">&#8249;</button>
+            <span class="mes-label" id="mes-label"></span>
+            <button onclick="cambiarMes(1)">&#8250;</button>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn-outline" onclick="cargar()">↻ Actualizar</button>
+          <button class="btn-amarillo" onclick="exportarExcelMes()">📥 Excel del mes</button>
+          <button class="btn-outline" onclick="cerrar()" style="color:var(--rojo);border-color:var(--rojo)">Salir</button>
+        </div>
+      </div>
+
+      <!-- Filtro por fecha específica -->
+      <div class="fecha-filtro">
+        <label>🔍 Buscar por fecha:</label>
+        <input type="date" id="filtro-fecha" onchange="filtrarPorFecha()"/>
+        <button class="btn-outline" onclick="limpiarFiltro()">✕ Ver mes completo</button>
+      </div>
+
+      <div id="resumen" class="resumen" style="display:none">
+        <div class="resumen-item"><span class="resumen-num" id="r-total">0</span><span class="resumen-label">Total pendientes</span></div>
+        <div class="resumen-item"><span class="resumen-num" id="r-empresa">0</span><span class="resumen-label">Empresas</span></div>
+        <div class="resumen-item"><span class="resumen-num" id="r-mensaje">0</span><span class="resumen-label">Por mensaje</span></div>
+        <div class="resumen-item"><span class="resumen-num" id="r-monto" style="color:var(--azul)">$0</span><span class="resumen-label">Monto total</span></div>
+      </div>
+      <div id="errbox"></div>
+      <div id="progbox" style="display:none">
+        <div class="progress">
+          <p id="progtxt">Revisando ventas...</p>
+          <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div id="ventas" class="ventas"></div>
+    </div>
+
+    <!-- TAB CLIENTES -->
+    <div id="tab-clientes" class="tab-content">
+      <div class="clientes-bar">
         <div>
-          <h2 style="display:inline">Ventas a facturar</h2>
-          <span class="badge" id="nbadge">0</span>
+          <h2 style="display:inline">Base de Clientes Empresas</h2>
+          <span class="badge" id="nbadge-clientes">0</span>
         </div>
-        <div class="mes-nav">
-          <button onclick="cambiarMes(-1)">&#8249;</button>
-          <span class="mes-label" id="mes-label"></span>
-          <button onclick="cambiarMes(1)">&#8250;</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-outline" onclick="cargarClientes()">↻ Actualizar</button>
+          <button class="btn-sm" onclick="exportarExcelClientes()">📥 Descargar Excel</button>
         </div>
       </div>
-      <div class="topbar-right">
-        <button class="btn-outline" onclick="cargar()">↻ Actualizar</button>
-        <button class="btn-outline" onclick="cerrar()" style="color:var(--rojo);border-color:var(--rojo)">Salir</button>
+      <p style="font-size:12px;color:var(--gris);margin-bottom:16px">Clientes que compraron sobre $20.000 — guardados automáticamente al detectar ventas.</p>
+      <div id="tabla-clientes">
+        <div class="empty-msg">Cargando clientes...</div>
       </div>
     </div>
-    <div id="resumen" class="resumen" style="display:none">
-      <div class="resumen-item"><span class="resumen-num" id="r-total">0</span><span class="resumen-label">Total a facturar</span></div>
-      <div class="resumen-item"><span class="resumen-num" id="r-empresa">0</span><span class="resumen-label">Empresas (billing_info)</span></div>
-      <div class="resumen-item"><span class="resumen-num" id="r-mensaje">0</span><span class="resumen-label">Solicitan por mensaje</span></div>
-      <div class="resumen-item"><span class="resumen-num" id="r-monto" style="color:var(--azul)">$0</span><span class="resumen-label">Monto total</span></div>
-    </div>
-    <div id="errbox"></div>
-    <div id="progbox" style="display:none">
-      <div class="progress">
-        <p id="progtxt">Revisando ventas...</p>
-        <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
-      </div>
-    </div>
-    <div id="ventas" class="ventas"></div>
   </div>
 </div>
+
 <script>
 const RURI='https://fanciful-platypus-723e4a.netlify.app';
 const KEYWORDS=['factura','boleta','rut','razón social','razon social','giro','tributario','sii','necesito factura','quiero factura','solicito factura','requiero factura','datos de factura','facturar'];
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 let token=localStorage.getItem('ml_token')||'';
 let rtoken=localStorage.getItem('ml_rtoken')||'';
 let userId=null;
-let facturadas=JSON.parse(localStorage.getItem('facturadas')||'{}');
+let facturadas={};
+let ventasMes=[];// todas las del mes en memoria
 
-// Mes actual por defecto
 const hoy=new Date();
-let mesVer=hoy.getMonth(); // 0-11
+let mesVer=hoy.getMonth();
 let anioVer=hoy.getFullYear();
 
-const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-function actualizarLabelMes(){
-  document.getElementById('mes-label').textContent=MESES[mesVer]+' '+anioVer;
+// ── TABS ──
+function showTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='tab-clientes')cargarClientes();
 }
 
-function cambiarMes(delta){
-  mesVer+=delta;
-  if(mesVer<0){mesVer=11;anioVer--;}
-  if(mesVer>11){mesVer=0;anioVer++;}
-  actualizarLabelMes();
-  cargar();
-}
-
-// Cargar config desde proxy
+// ── CONFIG ML ──
 fetch('/.netlify/functions/proxy?action=config')
   .then(r=>r.json())
   .then(cfg=>{
@@ -159,22 +213,25 @@ fetch('/.netlify/functions/proxy?action=config')
       `https://auth.mercadolibre.cl/authorization?response_type=code&client_id=${cfg.clientId}&redirect_uri=${encodeURIComponent(RURI)}`;
   });
 
-window.addEventListener('load',()=>{
+window.addEventListener('load',async()=>{
   const p=new URLSearchParams(window.location.search);
   const code=p.get('code');
   if(code){window.history.replaceState({},document.title,RURI);intercambiar(code);return;}
-  if(token){mostrarApp();actualizarLabelMes();cargar();}
+  if(token){
+    mostrarApp();
+    actualizarLabelMes();
+    // Cargar facturadas desde nube
+    await cargarFacturadas();
+    cargar();
+  }
 });
 
-// Llamada a ML API a través del proxy de Netlify
+// ── ML GET con renovación automática ──
 async function mlGet(url){
-  // Intentar primero con el token actual
   let resp=await fetch(`/.netlify/functions/proxy?action=api&url=${encodeURIComponent(url)}`,{
     headers:{'Authorization':`Bearer ${token}`}
   });
   let data=await resp.json();
-
-  // Si token expiró, renovar y reintentar
   if(resp.status===401&&rtoken){
     const ok=await refrescar();
     if(ok){
@@ -184,7 +241,7 @@ async function mlGet(url){
       data=await resp.json();
     }
   }
-  if(!resp.ok) throw new Error(data.message||`HTTP ${resp.status}`);
+  if(!resp.ok)throw new Error(data.message||`HTTP ${resp.status}`);
   return data;
 }
 
@@ -193,10 +250,8 @@ async function refrescar(){
     const r=await fetch(`/.netlify/functions/proxy?action=refresh&refresh_token=${encodeURIComponent(rtoken)}`);
     const d=await r.json();
     if(d.access_token){
-      token=d.access_token;
-      rtoken=d.refresh_token||rtoken;
-      localStorage.setItem('ml_token',token);
-      localStorage.setItem('ml_rtoken',rtoken);
+      token=d.access_token;rtoken=d.refresh_token||rtoken;
+      localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
       return true;
     }
   }catch(e){}
@@ -209,15 +264,13 @@ async function intercambiar(code){
     const r=await fetch(`/.netlify/functions/proxy?action=token&code=${encodeURIComponent(code)}`);
     const d=await r.json();
     if(d.access_token){
-      token=d.access_token;
-      rtoken=d.refresh_token||'';
-      localStorage.setItem('ml_token',token);
-      localStorage.setItem('ml_rtoken',rtoken);
-      mostrarApp();
-      actualizarLabelMes();
+      token=d.access_token;rtoken=d.refresh_token||'';
+      localStorage.setItem('ml_token',token);localStorage.setItem('ml_rtoken',rtoken);
+      mostrarApp();actualizarLabelMes();
+      await cargarFacturadas();
       cargar();
     }else{
-      document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error al conectar: ${JSON.stringify(d)}</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
+      document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error: ${JSON.stringify(d)}</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
     }
   }catch(e){
     document.getElementById('auth').innerHTML=`<div class="card"><p style="color:var(--rojo)">Error de conexión.</p><br/><a href="${RURI}" class="btn">Volver</a></div>`;
@@ -229,21 +282,54 @@ function mostrarApp(){
   document.getElementById('app').style.display='block';
 }
 
+function actualizarLabelMes(){
+  document.getElementById('mes-label').textContent=MESES[mesVer]+' '+anioVer;
+}
+
+function cambiarMes(delta){
+  mesVer+=delta;
+  if(mesVer<0){mesVer=11;anioVer--;}
+  if(mesVer>11){mesVer=0;anioVer++;}
+  actualizarLabelMes();
+  document.getElementById('filtro-fecha').value='';
+  cargar();
+}
+
 function setProgress(txt,pct){
   document.getElementById('progbox').style.display='block';
   document.getElementById('progtxt').textContent=txt;
   document.getElementById('pfill').style.width=pct+'%';
 }
 
+// ── FACTURADAS en nube ──
+async function cargarFacturadas(){
+  try{
+    const r=await fetch('/.netlify/functions/proxy?action=obtener_facturadas');
+    facturadas=await r.json();
+  }catch(e){facturadas={};}
+}
+
+async function guardarFacturadas(){
+  try{
+    await fetch('/.netlify/functions/proxy?action=guardar_facturadas',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(facturadas)
+    });
+  }catch(e){}
+}
+
+// ── CARGAR VENTAS DEL MES ──
 async function cargar(){
   const cont=document.getElementById('ventas');
   const err=document.getElementById('errbox');
   err.innerHTML='';
+  ventasMes=[];
   cont.innerHTML='<div class="loading"><div class="spin"></div><br/>Obteniendo ventas de '+MESES[mesVer]+' '+anioVer+'...</div>';
   document.getElementById('nbadge').textContent='...';
   document.getElementById('resumen').style.display='none';
+  document.getElementById('progbox').style.display='none';
 
-  // Rango de fechas del mes seleccionado
   const fechaInicio=new Date(anioVer,mesVer,1);
   const fechaFin=new Date(anioVer,mesVer+1,0,23,59,59);
   const desde=fechaInicio.toISOString().split('T')[0]+'T00:00:00.000-00:00';
@@ -256,58 +342,56 @@ async function cargar(){
 
     setProgress('Obteniendo ventas del mes...',5);
 
-    // Traer TODAS las órdenes del mes con paginación
+    // Paginación completa
     const ordenes=[];
-    let offset=0;
-    const limit=50;
-    let total_ml=999;
+    let offset=0,total_ml=999;
     while(offset<total_ml){
-      const url=`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=${limit}&offset=${offset}&order.date_created.from=${encodeURIComponent(desde)}&order.date_created.to=${encodeURIComponent(hasta)}`;
+      const url=`https://api.mercadolibre.com/orders/search?seller=${me.id}&sort=date_desc&limit=50&offset=${offset}&order.date_created.from=${encodeURIComponent(desde)}&order.date_created.to=${encodeURIComponent(hasta)}`;
       const d=await mlGet(url);
       total_ml=d.paging?.total||0;
       const batch=d.results||[];
-      if(batch.length===0)break;
+      if(!batch.length)break;
       ordenes.push(...batch);
-      offset+=limit;
+      offset+=50;
       setProgress(`Obteniendo ventas... ${ordenes.length} de ${total_ml}`,5+Math.round((ordenes.length/Math.max(total_ml,1))*20));
     }
     cont.innerHTML='';
 
-    const conFactura=[];
-    const total=ordenes.length;
-
-    if(total===0){
+    if(!ordenes.length){
       document.getElementById('progbox').style.display='none';
       document.getElementById('nbadge').textContent='0';
       cont.innerHTML=`<div class="loading" style="padding:40px">No hay ventas en ${MESES[mesVer]} ${anioVer}.</div>`;
       return;
     }
 
-    for(let i=0;i<ordenes.length;i++){
+    const total=ordenes.length;
+    for(let i=0;i<total;i++){
       const orden=ordenes[i];
-      const pct=25+Math.round((i/total)*70);
-      setProgress(`Revisando venta ${i+1} de ${total}...`,pct);
+      setProgress(`Revisando venta ${i+1} de ${total}...`,25+Math.round((i/total)*70));
 
-      let tieneEmpresa=false;
-      let pideFacturaMensaje=false;
-      let mensajeTexto='';
-      let billingData={};
+      let tieneEmpresa=false,pideFacturaMensaje=false,mensajeTexto='';
 
-      // 1. Datos de factura en billing_info (empresas)
+      // 1. billing_info (empresa)
       try{
         const det=await mlGet(`https://api.mercadolibre.com/orders/${orden.id}`);
         const bill=det.buyer?.billing_info||{};
         if(bill.doc_number||bill.company_name||bill.business_type){
           tieneEmpresa=true;
-          billingData=bill;
           if(!orden.buyer)orden.buyer={};
           orden.buyer.billing_info=bill;
-          orden.buyer.first_name=det.buyer.first_name||orden.buyer?.first_name||'';
-          orden.buyer.last_name=det.buyer.last_name||orden.buyer?.last_name||'';
+          orden.buyer.first_name=det.buyer?.first_name||'';
+          orden.buyer.last_name=det.buyer?.last_name||'';
+          orden.buyer.email=det.buyer?.email||'';
+          orden.buyer.phone=det.buyer?.phone?.number||'';
+          // Dirección del envío
+          const ship=det.shipping||{};
+          orden._direccion=ship.receiver_address
+            ?`${ship.receiver_address.street_name||''} ${ship.receiver_address.street_number||''}, ${ship.receiver_address.city?.name||''}`
+            :'—';
         }
       }catch(e){}
 
-      // 2. Solicitud de factura por mensaje
+      // 2. mensaje
       if(!tieneEmpresa){
         try{
           const packId=orden.pack_id||orden.id;
@@ -327,59 +411,97 @@ async function cargar(){
         orden._tieneEmpresa=tieneEmpresa;
         orden._pideFactura=pideFacturaMensaje;
         orden._mensajeTexto=mensajeTexto;
-        conFactura.push(orden);
-        renderVenta(orden,cont);
+        ventasMes.push(orden);
+
+        // Guardar cliente si monto > 20000
+        if((orden.total_amount||0)>20000&&tieneEmpresa){
+          guardarCliente(orden);
+        }
       }
     }
 
     setProgress('¡Listo!',100);
-    setTimeout(()=>{document.getElementById('progbox').style.display='none';},1200);
+    setTimeout(()=>{document.getElementById('progbox').style.display='none';},1000);
 
-    document.getElementById('nbadge').textContent=conFactura.length;
-
-    // Resumen
-    const nEmpresa=conFactura.filter(o=>o._tieneEmpresa).length;
-    const nMensaje=conFactura.filter(o=>o._pideFactura).length;
-    const montoTotal=conFactura.reduce((s,o)=>s+(o.total_amount||0),0);
-    document.getElementById('r-total').textContent=conFactura.length;
-    document.getElementById('r-empresa').textContent=nEmpresa;
-    document.getElementById('r-mensaje').textContent=nMensaje;
-    document.getElementById('r-monto').textContent='$'+montoTotal.toLocaleString('es-CL');
-    document.getElementById('resumen').style.display='flex';
-
-    if(conFactura.length===0){
-      cont.innerHTML=`<div class="loading" style="padding:40px">No se encontraron ventas que requieran factura en ${MESES[mesVer]} ${anioVer}.</div>`;
-    }
+    renderVentasMes();
 
   }catch(e){
     cont.innerHTML='';
     document.getElementById('progbox').style.display='none';
     if(e.message&&e.message.includes('401')){
-      // Token expirado y no se pudo renovar
       err.innerHTML=`<div class="err">⚠️ Sesión expirada. <a href="#" onclick="cerrar()" style="color:var(--rojo)">Volver a conectar</a></div>`;
-    } else {
+    }else{
       err.innerHTML=`<div class="err">⚠️ ${e.message}. <a href="#" onclick="cargar()" style="color:var(--rojo)">Reintentar</a></div>`;
     }
   }
 }
 
+// ── RENDER ventas (filtrando facturadas) ──
+function renderVentasMes(filtroFecha=null){
+  const cont=document.getElementById('ventas');
+  cont.innerHTML='';
+
+  let ventas=ventasMes.filter(o=>!facturadas[o.id]);
+
+  if(filtroFecha){
+    ventas=ventas.filter(o=>{
+      if(!o.date_created)return false;
+      const d=new Date(o.date_created);
+      const dd=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      return dd===filtroFecha;
+    });
+  }
+
+  document.getElementById('nbadge').textContent=ventas.length;
+
+  const nEmpresa=ventas.filter(o=>o._tieneEmpresa).length;
+  const nMensaje=ventas.filter(o=>o._pideFactura).length;
+  const montoTotal=ventas.reduce((s,o)=>s+(o.total_amount||0),0);
+  document.getElementById('r-total').textContent=ventas.length;
+  document.getElementById('r-empresa').textContent=nEmpresa;
+  document.getElementById('r-mensaje').textContent=nMensaje;
+  document.getElementById('r-monto').textContent='$'+montoTotal.toLocaleString('es-CL');
+  document.getElementById('resumen').style.display='flex';
+
+  if(!ventas.length){
+    const msg=filtroFecha
+      ?`No hay ventas pendientes de factura el ${filtroFecha}.`
+      :`No hay ventas pendientes de factura en ${MESES[mesVer]} ${anioVer}.`;
+    cont.innerHTML=`<div class="loading" style="padding:40px">${msg}</div>`;
+    return;
+  }
+
+  ventas.forEach(o=>renderVenta(o,cont));
+}
+
+function filtrarPorFecha(){
+  const val=document.getElementById('filtro-fecha').value;
+  if(val)renderVentasMes(val);
+}
+
+function limpiarFiltro(){
+  document.getElementById('filtro-fecha').value='';
+  renderVentasMes();
+}
+
 function renderVenta(orden,cont){
   const b=orden.buyer||{};
   const bill=b.billing_info||{};
-  const item=orden.order_items?.[0]?.item||{};
   const id=orden.id;
-  const yaf=facturadas[id];
+
+  // Todos los productos de la orden (unificados)
+  const items=orden.order_items||[];
+  const productosHTML=items.map(it=>`<span>• ${it.item?.title||'Producto'} (x${it.quantity||1}) — $${Number(it.unit_price||0).toLocaleString('es-CL')}</span>`).join('');
 
   const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'—');
   const rut=bill.doc_number||'—';
   const giro=bill.business_type||'—';
   const ciudad=bill.city_name||'—';
-  const link=`https://www.mercadolibre.cl/ventas/${id}/detalle`;
-
+  const email=b.email||'—';
+  const telefono=b.phone||'—';
+  const direccion=orden._direccion||'—';
   const fechaOrden=orden.date_created?new Date(orden.date_created).toLocaleDateString('es-CL'):'';
-
-  const existing=document.getElementById(`c${id}`);
-  if(existing)existing.remove();
+  const link=`https://www.mercadolibre.cl/ventas/${id}/detalle`;
 
   const card=document.createElement('div');
   card.className='vcard';
@@ -390,49 +512,158 @@ function renderVenta(orden,cont){
         <div class="oid">Orden #${id}</div>
         <div class="fecha-venta">${fechaOrden}</div>
         <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
-          ${yaf?'<span class="tag-f">✓ FACTURADA</span>':'<span class="tag-p">PENDIENTE</span>'}
+          <span class="tag-p">PENDIENTE</span>
           ${orden._tieneEmpresa?'<span class="tag-empresa">🏢 EMPRESA</span>':''}
-          ${orden._pideFactura?'<span class="tag-msg">💬 PIDE POR MENSAJE</span>':''}
+          ${orden._pideFactura?'<span class="tag-msg">💬 POR MENSAJE</span>':''}
         </div>
       </div>
       <div class="monto">$${Number(orden.total_amount||0).toLocaleString('es-CL')}</div>
     </div>
-    <div class="producto">${item.title||'Producto sin título'}</div>
+    <div class="productos-list">${productosHTML||'<span>Sin productos</span>'}</div>
     <div class="datos">
       <h4>📋 Datos para facturar</h4>
       <div class="fila"><span class="flabel">Razón social</span><span>${razon}</span></div>
       <div class="fila"><span class="flabel">RUT</span><span>${rut}</span></div>
       <div class="fila"><span class="flabel">Giro</span><span>${giro}</span></div>
       <div class="fila"><span class="flabel">Ciudad</span><span>${ciudad}</span></div>
-      ${orden._mensajeTexto?`<div class="fila" style="margin-top:6px"><span class="flabel" style="color:#ffb400">Mensaje</span><span style="font-size:12px;color:var(--gris);font-style:italic">"...${orden._mensajeTexto}..."</span></div>`:''}
+      <div class="fila"><span class="flabel">Dirección</span><span>${direccion}</span></div>
+      <div class="fila"><span class="flabel">Email</span><span>${email}</span></div>
+      <div class="fila"><span class="flabel">Teléfono</span><span>${telefono}</span></div>
+      ${orden._mensajeTexto?`<div class="fila" style="margin-top:6px"><span class="flabel" style="color:var(--amarillo)">Mensaje</span><span style="font-size:12px;color:var(--gris);font-style:italic">"...${orden._mensajeTexto}..."</span></div>`:''}
     </div>
     <div class="acciones">
       <a href="${link}" target="_blank" class="btn-azul">👁 Ver en ML</a>
-      <button class="${yaf?'btn-done':'btn-outline'}" onclick="marcar('${id}')">
-        ${yaf?'✓ Facturada':'Marcar como facturada'}
-      </button>
+      <button class="btn-outline" onclick="marcar('${id}')">✓ Marcar como facturada</button>
     </div>`;
   cont.appendChild(card);
 }
 
-function marcar(id){
-  facturadas[id]=!facturadas[id];
-  localStorage.setItem('facturadas',JSON.stringify(facturadas));
+async function marcar(id){
+  facturadas[id]=true;
+  await guardarFacturadas();
   const card=document.getElementById(`c${id}`);
   if(card){
-    const btn=card.querySelector('.acciones button');
-    const tags=card.querySelector('.vcard-top div div');
-    if(facturadas[id]){
-      btn.className='btn-done';btn.textContent='✓ Facturada';
-      // Actualizar tag
-      const tagP=tags.querySelector('.tag-p');
-      if(tagP)tagP.outerHTML='<span class="tag-f">✓ FACTURADA</span>';
-    }else{
-      btn.className='btn-outline';btn.textContent='Marcar como facturada';
-      const tagF=tags.querySelector('.tag-f');
-      if(tagF)tagF.outerHTML='<span class="tag-p">PENDIENTE</span>';
-    }
+    card.style.transition='opacity .3s';
+    card.style.opacity='0';
+    setTimeout(()=>{
+      card.remove();
+      // Actualizar badge
+      const restantes=document.querySelectorAll('.vcard').length;
+      document.getElementById('nbadge').textContent=restantes;
+      document.getElementById('r-total').textContent=restantes;
+      if(!restantes){
+        document.getElementById('ventas').innerHTML=`<div class="loading" style="padding:40px">¡Todas las ventas del mes han sido facturadas! 🎉</div>`;
+      }
+    },300);
   }
+}
+
+// ── EXPORTAR EXCEL MES ──
+function exportarExcelMes(){
+  const ventas=ventasMes.filter(o=>!facturadas[o.id]);
+  if(!ventas.length){alert('No hay ventas pendientes para exportar.');return;}
+
+  let csv='ID Orden,Fecha,Razón Social,RUT,Giro,Ciudad,Dirección,Email,Teléfono,Productos,Monto Total\n';
+  ventas.forEach(o=>{
+    const b=o.buyer||{};
+    const bill=b.billing_info||{};
+    const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
+    const productos=(o.order_items||[]).map(it=>it.item?.title||'').join(' | ');
+    const fecha=o.date_created?new Date(o.date_created).toLocaleDateString('es-CL'):'';
+    csv+=`"${o.id}","${fecha}","${razon}","${bill.doc_number||''}","${bill.business_type||''}","${bill.city_name||''}","${o._direccion||''}","${b.email||''}","${b.phone||''}","${productos}","${o.total_amount||0}"\n`;
+  });
+
+  descargarCSV(csv,`Ventas_Facturar_${MESES[mesVer]}_${anioVer}.csv`);
+}
+
+// ── CLIENTES ──
+async function guardarCliente(orden){
+  const b=orden.buyer||{};
+  const bill=b.billing_info||{};
+  const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
+  const fecha=orden.date_created?new Date(orden.date_created).toLocaleDateString('es-CL'):'';
+
+  const cliente={
+    orden_id:String(orden.id),
+    fecha,
+    razon_social:razon,
+    rut:bill.doc_number||'',
+    giro:bill.business_type||'',
+    ciudad:bill.city_name||'',
+    direccion:orden._direccion||'',
+    email:b.email||'',
+    telefono:b.phone||'',
+    monto:orden.total_amount||0
+  };
+
+  try{
+    await fetch('/.netlify/functions/proxy?action=guardar_cliente',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(cliente)
+    });
+  }catch(e){}
+}
+
+async function cargarClientes(){
+  const div=document.getElementById('tabla-clientes');
+  div.innerHTML='<div class="empty-msg"><div class="spin"></div><br/>Cargando...</div>';
+  try{
+    const r=await fetch('/.netlify/functions/proxy?action=obtener_clientes');
+    const clientes=await r.json();
+    document.getElementById('nbadge-clientes').textContent=clientes.length;
+
+    if(!clientes.length){
+      div.innerHTML='<div class="empty-msg">Aún no hay clientes registrados.<br/>Se guardan automáticamente al cargar ventas sobre $20.000.</div>';
+      return;
+    }
+
+    // Ordenar por monto desc
+    clientes.sort((a,b)=>b.monto-a.monto);
+
+    div.innerHTML=`<div class="table-wrap"><table class="cliente-table">
+      <thead><tr>
+        <th>Fecha</th><th>Empresa / Nombre</th><th>RUT</th><th>Giro</th>
+        <th>Ciudad</th><th>Email</th><th>Teléfono</th><th>Monto</th>
+      </tr></thead>
+      <tbody>
+        ${clientes.map(c=>`<tr>
+          <td>${c.fecha}</td>
+          <td><strong>${c.razon_social||'—'}</strong></td>
+          <td style="font-family:monospace">${c.rut||'—'}</td>
+          <td>${c.giro||'—'}</td>
+          <td>${c.ciudad||'—'}</td>
+          <td>${c.email||'—'}</td>
+          <td>${c.telefono||'—'}</td>
+          <td style="color:var(--verde);font-family:monospace">$${Number(c.monto).toLocaleString('es-CL')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+  }catch(e){
+    div.innerHTML=`<div class="empty-msg" style="color:var(--rojo)">Error al cargar clientes.</div>`;
+  }
+}
+
+function exportarExcelClientes(){
+  fetch('/.netlify/functions/proxy?action=obtener_clientes')
+    .then(r=>r.json())
+    .then(clientes=>{
+      if(!clientes.length){alert('No hay clientes registrados aún.');return;}
+      let csv='Fecha,Empresa/Nombre,RUT,Giro,Ciudad,Dirección,Email,Teléfono,Monto\n';
+      clientes.forEach(c=>{
+        csv+=`"${c.fecha}","${c.razon_social}","${c.rut}","${c.giro}","${c.ciudad}","${c.direccion}","${c.email}","${c.telefono}","${c.monto}"\n`;
+      });
+      descargarCSV(csv,'Clientes_PuntoMed.csv');
+    });
+}
+
+function descargarCSV(csv,nombre){
+  const bom='\uFEFF';
+  const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=nombre;a.click();
+  URL.revokeObjectURL(url);
 }
 
 function cerrar(){
