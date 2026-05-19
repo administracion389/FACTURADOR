@@ -184,12 +184,13 @@
 <script>
 const RURI='https://fanciful-platypus-723e4a.netlify.app';
 const KEYWORDS=['factura','boleta','rut','razón social','razon social','giro','tributario','sii','necesito factura','quiero factura','solicito factura','requiero factura','datos de factura','facturar'];
+const EXCLUIR=['ya fue adjuntada','factura adjuntada','factura adjunta','ya fue enviada','ya se adjuntó','ya se envió','adjuntada en el chat','factura solicitada ya fue'];
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 let token=localStorage.getItem('ml_token')||'';
 let rtoken=localStorage.getItem('ml_rtoken')||'';
 let userId=null;
-let facturadas={};
+let facturadas=JSON.parse(localStorage.getItem('facturadas')||'{}');
 let ventasMes=[];// todas las del mes en memoria
 
 const hoy=new Date();
@@ -301,15 +302,25 @@ function setProgress(txt,pct){
   document.getElementById('pfill').style.width=pct+'%';
 }
 
-// ── FACTURADAS en nube ──
+// ── FACTURADAS: localStorage + nube ──
 async function cargarFacturadas(){
+  // Primero cargar de localStorage (siempre disponible)
+  const local=JSON.parse(localStorage.getItem('facturadas')||'{}');
   try{
     const r=await fetch('/.netlify/functions/proxy?action=obtener_facturadas');
-    facturadas=await r.json();
-  }catch(e){facturadas={};}
+    const nube=await r.json();
+    // Combinar: si está en localStorage O en nube, está facturada
+    facturadas={...local,...nube};
+  }catch(e){
+    facturadas=local;
+  }
+  localStorage.setItem('facturadas',JSON.stringify(facturadas));
 }
 
 async function guardarFacturadas(){
+  // Guardar en localStorage siempre
+  localStorage.setItem('facturadas',JSON.stringify(facturadas));
+  // Intentar guardar en nube también
   try{
     await fetch('/.netlify/functions/proxy?action=guardar_facturadas',{
       method:'POST',
@@ -391,13 +402,17 @@ async function cargar(){
         }
       }catch(e){}
 
-      // 2. mensaje
+      // 2. mensaje (solo si NO es empresa y NO está ya facturada en ML)
       if(!tieneEmpresa){
         try{
           const packId=orden.pack_id||orden.id;
           const msgs=await mlGet(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${me.id}?tag=post_sale`);
           const textos=(msgs.messages||[]).map(m=>(m.text||'').toLowerCase()).join(' ');
-          if(KEYWORDS.some(k=>textos.includes(k))){
+          
+          // Si el mensaje indica que ya se envió la factura, ignorar
+          const yaFacturada=EXCLUIR.some(e=>textos.includes(e));
+          
+          if(!yaFacturada&&KEYWORDS.some(k=>textos.includes(k))){
             pideFacturaMensaje=true;
             for(const k of KEYWORDS){
               const idx=textos.indexOf(k);
