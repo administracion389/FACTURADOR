@@ -578,14 +578,21 @@ function exportarExcelMes(){
   const ventas=ventasMes.filter(o=>!facturadas[o.id]);
   if(!ventas.length){alert('No hay ventas pendientes para exportar.');return;}
 
-  let csv='ID Orden,Fecha,Razón Social,RUT,Giro,Ciudad,Dirección,Email,Teléfono,Productos,Monto Total\n';
+  let csv='ID Orden;Fecha;Razón Social;RUT;Giro;Ciudad;Dirección;Email;Teléfono;Producto;Cantidad;Precio Unitario;Monto Total\n';
   ventas.forEach(o=>{
     const b=o.buyer||{};
     const bill=b.billing_info||{};
-    const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
-    const productos=(o.order_items||[]).map(it=>it.item?.title||'').join(' | ');
+    const razon=(bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'')).replace(/;/g,' ');
     const fecha=o.date_created?new Date(o.date_created).toLocaleDateString('es-CL'):'';
-    csv+=`"${o.id}","${fecha}","${razon}","${bill.doc_number||''}","${bill.business_type||''}","${bill.city_name||''}","${o._direccion||''}","${b.email||''}","${b.phone||''}","${productos}","${o.total_amount||0}"\n`;
+    const items=o.order_items||[];
+    if(items.length===0){
+      csv+=`${o.id};${fecha};${razon};${bill.doc_number||''};${(bill.business_type||'').replace(/;/g,' ')};${(bill.city_name||'').replace(/;/g,' ')};${(o._direccion||'').replace(/;/g,' ')};${b.email||''};${b.phone||''};Sin producto;0;0;${o.total_amount||0}\n`;
+    }else{
+      items.forEach(it=>{
+        const titulo=(it.item?.title||'Sin título').replace(/;/g,' ');
+        csv+=`${o.id};${fecha};${razon};${bill.doc_number||''};${(bill.business_type||'').replace(/;/g,' ')};${(bill.city_name||'').replace(/;/g,' ')};${(o._direccion||'').replace(/;/g,' ')};${b.email||''};${b.phone||''};${titulo};${it.quantity||1};${it.unit_price||0};${o.total_amount||0}\n`;
+      });
+    }
   });
 
   descargarCSV(csv,`Ventas_Facturar_${MESES[mesVer]}_${anioVer}.csv`);
@@ -598,6 +605,8 @@ async function guardarCliente(orden){
   const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
   const fecha=orden.date_created?new Date(orden.date_created).toLocaleDateString('es-CL'):'';
 
+  const productos=(orden.order_items||[]).map(it=>`${it.item?.title||''} (x${it.quantity||1})`).join(' | ');
+
   const cliente={
     orden_id:String(orden.id),
     fecha,
@@ -608,6 +617,7 @@ async function guardarCliente(orden){
     direccion:orden._direccion||'',
     email:b.email||'',
     telefono:b.phone||'',
+    producto:productos,
     monto:orden.total_amount||0
   };
 
@@ -664,9 +674,9 @@ function exportarExcelClientes(){
     .then(r=>r.json())
     .then(clientes=>{
       if(!clientes.length){alert('No hay clientes registrados aún.');return;}
-      let csv='Fecha,Empresa/Nombre,RUT,Giro,Ciudad,Dirección,Email,Teléfono,Monto\n';
+      let csv='ID Orden;Fecha;Empresa/Nombre;RUT;Giro;Ciudad;Dirección;Email;Teléfono;Producto;Monto\n';
       clientes.forEach(c=>{
-        csv+=`"${c.fecha}","${c.razon_social}","${c.rut}","${c.giro}","${c.ciudad}","${c.direccion}","${c.email}","${c.telefono}","${c.monto}"\n`;
+        csv+=`${c.orden_id||''};${c.fecha};${(c.razon_social||'').replace(/;/g,' ')};${c.rut};${(c.giro||'').replace(/;/g,' ')};${(c.ciudad||'').replace(/;/g,' ')};${(c.direccion||'').replace(/;/g,' ')};${c.email};${c.telefono};${(c.producto||'').replace(/;/g,' ')};${c.monto}\n`;
       });
       descargarCSV(csv,'Clientes_PuntoMed.csv');
     });
