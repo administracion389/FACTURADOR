@@ -382,41 +382,128 @@ async function cargar(){
 
       let tieneEmpresa=false,pideFacturaMensaje=false,mensajeTexto='';
 
-      // 1. billing_info (empresa)
+      // SIEMPRE obtener datos del comprador y dirección
       try{
         const det=await mlGet(`https://api.mercadolibre.com/orders/${orden.id}`);
+        if(!orden.buyer)orden.buyer={};
+        orden.buyer.first_name=det.buyer?.first_name||'';
+        orden.buyer.last_name=det.buyer?.last_name||'';
+        orden.buyer.email=det.buyer?.email||'';
+        orden.buyer.phone=det.buyer?.phone?.number||'';
+        
+        // Dirección del envío
+        const ship=det.shipping||{};
+        if(ship.receiver_address){
+          orden._direccion=`${ship.receiver_address.street_name||''} ${ship.receiver_address.street_number||''}, ${ship.receiver_address.city?.name||''}`;
+        }else{
+          orden._direccion='—';
+        }
+
+        // billing_info (empresa)
         const bill=det.buyer?.billing_info||{};
         if(bill.doc_number||bill.company_name||bill.business_type){
           tieneEmpresa=true;
-          if(!orden.buyer)orden.buyer={};
           orden.buyer.billing_info=bill;
-          orden.buyer.first_name=det.buyer?.first_name||'';
-          orden.buyer.last_name=det.buyer?.last_name||'';
-          orden.buyer.email=det.buyer?.email||'';
-          orden.buyer.phone=det.buyer?.phone?.number||'';
-          // Dirección del envío
-          const ship=det.shipping||{};
-          orden._direccion=ship.receiver_address
-            ?`${ship.receiver_address.street_name||''} ${ship.receiver_address.street_number||''}, ${ship.receiver_address.city?.name||''}`
-            :'—';
         }
       }catch(e){}
 
-      // 2. mensaje (solo si NO es empresa y NO está ya facturada en ML)
+      // 2. mensaje (solo si NO es empresa)
       if(!tieneEmpresa){
         try{
           const packId=orden.pack_id||orden.id;
           const msgs=await mlGet(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${me.id}?tag=post_sale`);
-          const textos=(msgs.messages||[]).map(m=>(m.text||'').toLowerCase()).join(' ');
+          const allTexts=(msgs.messages||[]).map(m=>(m.text||'')).join(' ');
+          const textos=allTexts.toLowerCase();
           
           // Si el mensaje indica que ya se envió la factura, ignorar
           const yaFacturada=EXCLUIR.some(e=>textos.includes(e));
           
           if(!yaFacturada&&KEYWORDS.some(k=>textos.includes(k))){
             pideFacturaMensaje=true;
+            if(!orden.buyer.billing_info)orden.buyer.billing_info={};
+            
+            // Capturar TODO el texto de mensajes del comprador para mostrar
+            const msgComprador=(msgs.messages||[])
+              .filter(m=>m.from&&m.from.user_id!==me.id)
+              .map(m=>m.text||'').join(' ');
+            const msgAll=msgComprador||allTexts;
+            
+            // Fragmento para mostrar en la tarjeta
             for(const k of KEYWORDS){
               const idx=textos.indexOf(k);
-              if(idx>=0){mensajeTexto=textos.substring(Math.max(0,idx-20),idx+100).trim();break;}
+              if(idx>=0){mensajeTexto=textos.substring(Math.max(0,idx-20),idx+150).trim();break;}
+            }
+
+            // ── EXTRAER RUT ──
+            // Formatos: 77.929.621-0, 77929621-0, 651596459, 65.159.645-9
+            const rutPatterns=[
+              /(\d{1,2}\.\d{3}\.\d{3}[\-\s]?[\dkK])/i,
+              /(\d{7,9}[\-\s][\dkK])/i,
+              /rut[:\s]+(\d[\d\.\-kK\s]+)/i
+            ];
+            for(const rp of rutPatterns){
+              const rm=msgAll.match(rp);
+              if(rm){
+                orden.buyer.billing_info.doc_number=rm[1].replace(/\s/g,'').trim();
+                break;
+              }
+            }
+
+            // ── EXTRAER EMPRESA / RAZÓN SOCIAL ──
+            const empresaPatterns=[
+              /factura\s+a\s+(.+?)(?:\d{1,2}[\.\s]?\d{3})/i,
+              /factura\s+a\s+(.+?)(?:[\,\.\n]|$)/i,
+              /a\s+nombre\s+de\s+(.+?)(?:\d{1,2}[\.\s]?\d{3})/i,
+              /a\s+nombre\s+de\s+(.+?)(?:[\,\.\n]|$)/i,
+              /raz[oó]n\s*social[:\s]+(.+?)(?:[\,\.\n]|$)/i,
+              /empresa[:\s]+(.+?)(?:[\,\.\n]|$)/i,
+              /(?:spa|ltda|eirl|s\.?a\.?|srl)\b/i
+            ];
+            for(const pat of empresaPatterns){
+              const m=msgAll.match(pat);
+              if(m&&m[1]&&m[1].trim().length>2){
+                let nombre=m[1].trim();
+                // Limpiar caracteres no deseados al final
+                nombre=nombre.replace(/[\,\.\;\:\!]+$/,'').trim();
+                if(nombre.length>2){
+                  orden.buyer.billing_info.company_name=nombre;
+                  break;
+                }
+              }
+            }
+            // Si no encontró con patrones, buscar línea con spa/ltda/eirl
+            if(!orden.buyer.billing_info.company_name){
+              const lineas=msgAll.split(/[\n\r,]+/);
+              for(const l of lineas){
+                if(/\b(spa|ltda|eirl|s\.?a\.?|srl|limitada|sociedad)\b/i.test(l)&&l.trim().length>3){
+                  orden.buyer.billing_info.company_name=l.trim().replace(/[\,\.\;\:\!]+$/,'');
+                  break;
+                }
+              }
+            }
+
+            // ── EXTRAER GIRO ──
+            const giroMatch=msgAll.match(/giro[:\s]+(.+?)(?:[\,\.\n]|$)/i);
+            if(giroMatch&&giroMatch[1].trim().length>2){
+              orden.buyer.billing_info.business_type=giroMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+            }
+
+            // ── EXTRAER DIRECCIÓN del mensaje ──
+            const dirMatch=msgAll.match(/direcci[oó]n[:\s]+(.+?)(?:[\n]|$)/i);
+            if(dirMatch&&dirMatch[1].trim().length>3){
+              orden._direccion=dirMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+            }
+
+            // ── EXTRAER CORREO ──
+            const emailMatch=msgAll.match(/[\w\.\-]+@[\w\.\-]+\.\w+/);
+            if(emailMatch){
+              orden.buyer.email=emailMatch[0];
+            }
+
+            // ── EXTRAER TELÉFONO del mensaje ──
+            const telMatch=msgAll.match(/(?:fono|tel[eé]fono|celular|contacto|whatsapp)[:\s]*\+?(\d[\d\s\-]+)/i);
+            if(telMatch){
+              orden.buyer.phone=telMatch[1].replace(/\s/g,'');
             }
           }
         }catch(e){}
