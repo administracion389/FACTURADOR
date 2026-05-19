@@ -450,40 +450,47 @@ async function cargar(){
             }
 
             // ── EXTRAER EMPRESA / RAZÓN SOCIAL ──
-            const empresaPatterns=[
-              /factura\s+a\s+(.+?)(?:\d{1,2}[\.\s]?\d{3})/i,
-              /factura\s+a\s+(.+?)(?:[\,\.\n]|$)/i,
-              /a\s+nombre\s+de\s+(.+?)(?:\d{1,2}[\.\s]?\d{3})/i,
-              /a\s+nombre\s+de\s+(.+?)(?:[\,\.\n]|$)/i,
-              /raz[oó]n\s*social[:\s]+(.+?)(?:[\,\.\n]|$)/i,
-              /empresa[:\s]+(.+?)(?:[\,\.\n]|$)/i,
-              /(?:spa|ltda|eirl|s\.?a\.?|srl)\b/i
-            ];
-            for(const pat of empresaPatterns){
-              const m=msgAll.match(pat);
-              if(m&&m[1]&&m[1].trim().length>2){
-                let nombre=m[1].trim();
-                // Limpiar caracteres no deseados al final
-                nombre=nombre.replace(/[\,\.\;\:\!]+$/,'').trim();
-                if(nombre.length>2){
-                  orden.buyer.billing_info.company_name=nombre;
-                  break;
+            // Estrategia: analizar línea por línea del mensaje del comprador
+            const lineas=msgAll.split(/[\n\r]+/).map(l=>l.trim()).filter(l=>l.length>0);
+            
+            // 1. Buscar línea que empiece con palabras clave explícitas
+            for(const l of lineas){
+              const lower=l.toLowerCase();
+              const razMatch=l.match(/(?:raz[oó]n\s*social|empresa|a\s*nombre\s*de)[:\s]+(.+)/i);
+              if(razMatch&&razMatch[1].trim().length>2){
+                orden.buyer.billing_info.company_name=razMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+                break;
+              }
+            }
+            
+            // 2. Si no encontró, buscar línea que contenga spa/ltda/eirl/corporación/fundación/sociedad
+            if(!orden.buyer.billing_info.company_name){
+              for(const l of lineas){
+                if(/\b(spa|ltda|eirl|s\.?a\.?|srl|limitada|sociedad|corporaci[oó]n|fundaci[oó]n|asociaci[oó]n|consultora|servicios|comercial|cl[ií]nica|hospital|instituto)\b/i.test(l)){
+                  // Limpiar prefijos innecesarios
+                  let nombre=l.replace(/^(adjunto\s*datos|datos\s*de\s*factura|factura\s*a|buenos\s*d[ií]as?|estimados?|hola)[,:\s]*/i,'').trim();
+                  nombre=nombre.replace(/[\,\.\;\:\!]+$/,'').trim();
+                  if(nombre.length>3){
+                    orden.buyer.billing_info.company_name=nombre;
+                    break;
+                  }
                 }
               }
             }
-            // Si no encontró con patrones, buscar línea con spa/ltda/eirl
+
+            // 3. Si aún no encontró, buscar línea toda en mayúsculas (típico de nombres de empresa)
             if(!orden.buyer.billing_info.company_name){
-              const lineas=msgAll.split(/[\n\r,]+/);
               for(const l of lineas){
-                if(/\b(spa|ltda|eirl|s\.?a\.?|srl|limitada|sociedad)\b/i.test(l)&&l.trim().length>3){
-                  orden.buyer.billing_info.company_name=l.trim().replace(/[\,\.\;\:\!]+$/,'');
+                const limpio=l.replace(/[^A-ZÁÉÍÓÚÑ\s]/g,'').trim();
+                if(limpio.length>4&&limpio===limpio.toUpperCase()&&!/^(BUENOS|ESTIMADOS?|HOLA|ADJUNTO|SOLICITO|RUT|GIRO|DIRECCI)/i.test(limpio)){
+                  orden.buyer.billing_info.company_name=l.trim();
                   break;
                 }
               }
             }
 
             // ── EXTRAER GIRO ──
-            const giroMatch=msgAll.match(/giro[:\s]+(.+?)(?:[\,\.\n]|$)/i);
+            const giroMatch=msgAll.match(/giro[:\s]+(.+?)(?:[\n]|$)/i);
             if(giroMatch&&giroMatch[1].trim().length>2){
               orden.buyer.billing_info.business_type=giroMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
             }
@@ -492,6 +499,20 @@ async function cargar(){
             const dirMatch=msgAll.match(/direcci[oó]n[:\s]+(.+?)(?:[\n]|$)/i);
             if(dirMatch&&dirMatch[1].trim().length>3){
               orden._direccion=dirMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+            }
+
+            // ── EXTRAER CIUDAD del mensaje ──
+            const ciudadMatch=msgAll.match(/ciudad[:\s]+(.+?)(?:[\n]|$)/i);
+            if(ciudadMatch&&ciudadMatch[1].trim().length>2){
+              orden.buyer.billing_info=orden.buyer.billing_info||{};
+              orden.buyer.billing_info.city_name=ciudadMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+            }
+            // También buscar comuna
+            if(!orden.buyer.billing_info?.city_name){
+              const comMatch=msgAll.match(/comuna[:\s]+(.+?)(?:[\n]|$)/i);
+              if(comMatch&&comMatch[1].trim().length>2){
+                orden.buyer.billing_info.city_name=comMatch[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+              }
             }
 
             // ── EXTRAER CORREO ──
