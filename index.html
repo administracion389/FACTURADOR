@@ -355,53 +355,95 @@ async function cargar(){
         orden.buyer.last_name=det.buyer?.last_name||'';
         orden.buyer.email=det.buyer?.email||'';
         orden.buyer.phone=det.buyer?.phone?.number||'';
+        // Nombre completo del comprador como fallback
+        orden._nombreComprador=`${orden.buyer.first_name} ${orden.buyer.last_name}`.trim();
         const ship=det.shipping||{};
         if(ship.receiver_address){
-          orden._direccion=`${ship.receiver_address.street_name||''} ${ship.receiver_address.street_number||''}, ${ship.receiver_address.city?.name||''}`;
+          orden._direccion=`${ship.receiver_address.street_name||''} ${ship.receiver_address.street_number||''}, ${ship.receiver_address.city?.name||''}`.trim().replace(/^,\s*/,'');
         }else{orden._direccion='—';}
         const bill=det.buyer?.billing_info||{};
-        if(bill.doc_number||bill.company_name||bill.business_type){
-          tieneEmpresa=true;orden.buyer.billing_info=bill;
+        // Solo considerar empresa si tiene RUT (doc_number), no solo nombre del perfil ML
+        if(bill.doc_number){
+          tieneEmpresa=true;
+          orden.buyer.billing_info=bill;
+          // Normalizar RUT
+          orden.buyer.billing_info.doc_number=normalizarRut(bill.doc_number);
         }
       }catch(e){}
 
-      // Mensajes
-      if(!tieneEmpresa){
-        try{
-          const packId=orden.pack_id||orden.id;
-          const msgs=await mlGet(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${me.id}?tag=post_sale`);
-          const msgComprador=(msgs.messages||[]).filter(m=>m.from&&m.from.user_id!==me.id).map(m=>m.text||'').join('\n');
-          const allTexts=(msgs.messages||[]).map(m=>(m.text||'')).join('\n');
-          const textos=allTexts.toLowerCase();
-          const yaFact=EXCLUIR.some(e=>textos.includes(e));
-          if(!yaFact&&KEYWORDS.some(k=>textos.includes(k))){
-            pideFacturaMensaje=true;
-            if(!orden.buyer.billing_info)orden.buyer.billing_info={};
-            const msgAll=msgComprador||allTexts;
-            // Fragmento
-            for(const k of KEYWORDS){const idx=textos.indexOf(k);if(idx>=0){mensajeTexto=textos.substring(Math.max(0,idx-20),idx+150).trim();break;}}
-            // RUT
-            const rutP=[/(\d{1,2}\.\d{3}\.\d{3}[\-\s]?[\dkK])/i,/(\d{7,9}[\-\s][\dkK])/i,/rut[:\s]+(\d[\d\.\-kK\s]+)/i];
-            for(const rp of rutP){const rm=msgAll.match(rp);if(rm){orden.buyer.billing_info.doc_number=rm[1].replace(/\s/g,'').trim();break;}}
-            // Empresa
-            const lineas=msgAll.split(/[\n\r]+/).map(l=>l.trim()).filter(l=>l.length>0);
-            for(const l of lineas){const rm=l.match(/(?:raz[oó]n\s*social|empresa|a\s*nombre\s*de)[:\s]+(.+)/i);if(rm&&rm[1].trim().length>2){orden.buyer.billing_info.company_name=rm[1].trim().replace(/[\,\.\;\:\!]+$/,'');break;}}
-            if(!orden.buyer.billing_info.company_name){for(const l of lineas){if(/\b(spa|ltda|eirl|s\.?a\.?|srl|limitada|sociedad|corporaci[oó]n|fundaci[oó]n|cl[ií]nica|hospital|instituto|comercial|servicios|consultora)\b/i.test(l)){let n=l.replace(/^(adjunto\s*datos|datos\s*de\s*factura|factura\s*a|buenos\s*d[ií]as?|estimados?|hola)[,:\s]*/i,'').trim().replace(/[\,\.\;\:\!]+$/,'');if(n.length>3){orden.buyer.billing_info.company_name=n;break;}}}}
-            if(!orden.buyer.billing_info.company_name){for(const l of lineas){const lim=l.replace(/[^A-ZÁÉÍÓÚÑ\s]/g,'').trim();if(lim.length>4&&lim===lim.toUpperCase()&&!/^(BUENOS|ESTIMADOS?|HOLA|ADJUNTO|SOLICITO|RUT|GIRO|DIRECCI)/i.test(lim)){orden.buyer.billing_info.company_name=l.trim();break;}}}
-            // Giro
-            const gm=msgAll.match(/giro[:\s]+(.+?)(?:[\n]|$)/i);if(gm&&gm[1].trim().length>2)orden.buyer.billing_info.business_type=gm[1].trim().replace(/[\,\.\;\:\!]+$/,'');
-            // Dirección
-            const dm=msgAll.match(/direcci[oó]n[:\s]+(.+?)(?:[\n]|$)/i);if(dm&&dm[1].trim().length>3)orden._direccion=dm[1].trim().replace(/[\,\.\;\:\!]+$/,'');
-            // Ciudad/Comuna
-            const cm=msgAll.match(/ciudad[:\s]+(.+?)(?:[\n]|$)/i);if(cm&&cm[1].trim().length>2)orden.buyer.billing_info.city_name=cm[1].trim().replace(/[\,\.\;\:\!]+$/,'');
-            if(!orden.buyer.billing_info.city_name){const com=msgAll.match(/comuna[:\s]+(.+?)(?:[\n]|$)/i);if(com&&com[1].trim().length>2)orden.buyer.billing_info.city_name=com[1].trim().replace(/[\,\.\;\:\!]+$/,'');}
-            // Email
-            const em=msgAll.match(/[\w\.\-]+@[\w\.\-]+\.\w+/);if(em)orden.buyer.email=em[0];
-            // Teléfono
-            const tm2=msgAll.match(/(?:fono|tel[eé]fono|celular|contacto|whatsapp)[:\s]*\+?(\d[\d\s\-]+)/i);if(tm2)orden.buyer.phone=tm2[1].replace(/\s/g,'');
+      // Mensajes (también buscar si ya tiene empresa, para complementar datos)
+      try{
+        const packId=orden.pack_id||orden.id;
+        const msgs=await mlGet(`https://api.mercadolibre.com/messages/packs/${packId}/sellers/${me.id}?tag=post_sale`);
+        const msgComprador=(msgs.messages||[]).filter(m=>m.from&&m.from.user_id!==me.id).map(m=>m.text||'').join('\n');
+        const allTexts=(msgs.messages||[]).map(m=>(m.text||'')).join('\n');
+        const textos=allTexts.toLowerCase();
+        const yaFact=EXCLUIR.some(e=>textos.includes(e));
+
+        if(!tieneEmpresa&&!yaFact&&KEYWORDS.some(k=>textos.includes(k))){
+          pideFacturaMensaje=true;
+          if(!orden.buyer.billing_info)orden.buyer.billing_info={};
+          const msgAll=msgComprador||allTexts;
+
+          // Fragmento del mensaje
+          for(const k of KEYWORDS){const idx=textos.indexOf(k);if(idx>=0){mensajeTexto=textos.substring(Math.max(0,idx-20),idx+150).trim();break;}}
+
+          // RUT — normalizar siempre
+          const rutP=[/(\d{1,2}\.\d{3}\.\d{3}[\-\s]?[\dkK])/i,/(\d{7,9}[\-\s][\dkK])/i,/rut[:\s]+(\d[\d\.\-kK\s]+)/i];
+          for(const rp of rutP){const rm=msgAll.match(rp);if(rm){orden.buyer.billing_info.doc_number=normalizarRut(rm[1].trim());break;}}
+
+          // Empresa: juntar líneas consecutivas en mayúsculas (ej: CORPORACIÓN + EDUCACIONAL VILLAMAGNA)
+          const lineas=msgAll.split(/[\n\r]+/).map(l=>l.trim()).filter(l=>l.length>0);
+          let empresaEncontrada='';
+
+          // 1. Buscar "Razón social:", "empresa:", "a nombre de:"
+          for(const l of lineas){
+            const rm=l.match(/(?:raz[oó]n\s*social|empresa|a\s*nombre\s*de)[:\s]+(.+)/i);
+            if(rm&&rm[1].trim().length>2){empresaEncontrada=limpiarNombreEmpresa(rm[1].trim());if(empresaEncontrada)break;}
           }
-        }catch(e){}
-      }
+
+          // 2. Buscar línea con tipo empresa (spa, ltda, etc.)
+          if(!empresaEncontrada){
+            for(let li=0;li<lineas.length;li++){
+              if(/\b(spa|ltda|eirl|s\.?a\.?|srl|limitada|sociedad|corporaci[oó]n|fundaci[oó]n|cl[ií]nica|hospital|instituto|comercial|servicios|consultora|veterinarios?|médicos?|medicos?)\b/i.test(lineas[li])){
+                // Intentar unir con línea anterior si es parte del nombre
+                let nombreCandidato=lineas[li];
+                if(li>0&&lineas[li-1].length>2&&lineas[li-1].length<50&&!/^(buenos|estimados?|hola|rut|giro|direcci)/i.test(lineas[li-1])){
+                  nombreCandidato=lineas[li-1]+' '+lineas[li];
+                }
+                empresaEncontrada=limpiarNombreEmpresa(nombreCandidato);
+                if(empresaEncontrada)break;
+              }
+            }
+          }
+
+          // 3. Buscar líneas en MAYÚSCULAS consecutivas (unirlas)
+          if(!empresaEncontrada){
+            let bloqueMayus=[];
+            for(const l of lineas){
+              const sinNum=l.replace(/[\d\.\-]/g,'').trim();
+              if(sinNum.length>3&&sinNum===sinNum.toUpperCase()&&!/^(BUENOS|ESTIMADOS?|HOLA|ADJUNTO|SOLICITO|RUT|GIRO|DIRECCI|FAVOR|GRACIAS)/i.test(sinNum)){
+                bloqueMayus.push(l.trim());
+              }else if(bloqueMayus.length>0){break;}
+            }
+            if(bloqueMayus.length>0){empresaEncontrada=limpiarNombreEmpresa(bloqueMayus.join(' '));}
+          }
+
+          if(empresaEncontrada)orden.buyer.billing_info.company_name=empresaEncontrada;
+
+          // Giro
+          const gm=msgAll.match(/giro[:\s]+(.+?)(?:[\n]|$)/i);if(gm&&gm[1].trim().length>2)orden.buyer.billing_info.business_type=gm[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+          // Dirección
+          const dm=msgAll.match(/direcci[oó]n[:\s]+(.+?)(?:[\n]|$)/i);if(dm&&dm[1].trim().length>3)orden._direccion=dm[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+          // Ciudad/Comuna
+          const cm=msgAll.match(/ciudad[:\s]+(.+?)(?:[\n]|$)/i);if(cm&&cm[1].trim().length>2)orden.buyer.billing_info.city_name=cm[1].trim().replace(/[\,\.\;\:\!]+$/,'');
+          if(!orden.buyer.billing_info.city_name){const com=msgAll.match(/comuna[:\s]+(.+?)(?:[\n]|$)/i);if(com&&com[1].trim().length>2)orden.buyer.billing_info.city_name=com[1].trim().replace(/[\,\.\;\:\!]+$/,'');}
+          // Email
+          const em=msgAll.match(/[\w\.\-]+@[\w\.\-]+\.\w+/);if(em)orden.buyer.email=em[0];
+          // Teléfono
+          const tm2=msgAll.match(/(?:fono|tel[eé]fono|celular|contacto|whatsapp)[:\s]*\+?(\d[\d\s\-]+)/i);if(tm2)orden.buyer.phone=tm2[1].replace(/\s/g,'');
+        }
+      }catch(e){}
 
       if(tieneEmpresa||pideFacturaMensaje){
         orden._tieneEmpresa=tieneEmpresa;
@@ -482,11 +524,22 @@ function renderVenta(orden,cont){
   const b=orden.buyer||{};const bill=b.billing_info||{};const id=orden.id;
   const items=orden.order_items||[];
   const prodHTML=items.map(it=>`<span>• ${it.item?.title||'Producto'} (x${it.quantity||1}) — $${Number(it.unit_price||0).toLocaleString('es-CL')}</span>`).join('');
-  const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'—');
-  const rut=bill.doc_number||'—';const giro=bill.business_type||'—';const ciudad=bill.city_name||'—';
-  const email=b.email||'—';const telefono=b.phone||'—';const direccion=orden._direccion||'—';
+
+  // Nombre: empresa > nombre del mensaje > nombre del comprador ML
+  const razon=bill.company_name||(orden._nombreComprador||'—');
+  const rut=bill.doc_number||'';
+  const giro=bill.business_type||'';
+  const ciudad=bill.city_name||'';
+  const email=b.email||'';
+  const telefono=b.phone||'';
+  const direccion=orden._direccion||'—';
   const fecha=orden.date_created?new Date(orden.date_created).toLocaleDateString('es-CL'):'';
   const link=`https://www.mercadolibre.cl/ventas/${id}/detalle`;
+
+  // Detectar datos faltantes importantes
+  const faltaRut=!rut;
+  const faltaEmpresa=!bill.company_name;
+  const alertaDatos=faltaRut||faltaEmpresa;
 
   const c=document.createElement('div');c.className='vcard';c.id=`c${id}`;
   c.innerHTML=`
@@ -498,6 +551,7 @@ function renderVenta(orden,cont){
           ${orden._tieneEmpresa?'<span class="tag-empresa">🏢 EMPRESA</span>':''}
           ${orden._pideFactura?'<span class="tag-msg">💬 MENSAJE</span>':''}
           ${orden._recurrente?'<span class="tag-rec">🔄 RECURRENTE</span>':''}
+          ${alertaDatos?'<span style="background:rgba(248,81,73,.12);color:var(--rojo);font-size:9px;padding:2px 6px;border-radius:3px;font-family:monospace">⚠️ DATOS INCOMPLETOS</span>':''}
         </div>
       </div>
       <div class="monto">$${Number(orden.total_amount||0).toLocaleString('es-CL')}</div>
@@ -505,13 +559,13 @@ function renderVenta(orden,cont){
     <div class="productos-list">${prodHTML||'<span>Sin productos</span>'}</div>
     <div class="datos">
       <h4>📋 DATOS PARA FACTURAR</h4>
-      <div class="fila"><span class="flabel">Razón social</span><span>${razon}</span></div>
-      <div class="fila"><span class="flabel">RUT</span><span>${rut}</span></div>
-      <div class="fila"><span class="flabel">Giro</span><span>${giro}</span></div>
-      <div class="fila"><span class="flabel">Ciudad</span><span>${ciudad}</span></div>
+      <div class="fila"><span class="flabel">Razón social</span><span style="${faltaEmpresa?'color:var(--amarillo)':''}">${razon}${faltaEmpresa?' ⚠️':''}</span></div>
+      <div class="fila"><span class="flabel">RUT</span><span style="${faltaRut?'color:var(--rojo)':''}">${rut||'⚠️ No disponible'}</span></div>
+      <div class="fila"><span class="flabel">Giro</span><span>${giro||'—'}</span></div>
+      <div class="fila"><span class="flabel">Ciudad</span><span>${ciudad||'—'}</span></div>
       <div class="fila"><span class="flabel">Dirección</span><span>${direccion}</span></div>
-      <div class="fila"><span class="flabel">Email</span><span>${email}</span></div>
-      <div class="fila"><span class="flabel">Teléfono</span><span>${telefono}</span></div>
+      <div class="fila"><span class="flabel">Email</span><span>${email||'—'}</span></div>
+      <div class="fila"><span class="flabel">Teléfono</span><span>${telefono||'—'}</span></div>
       ${orden._mensajeTexto?`<div class="fila" style="margin-top:5px"><span class="flabel" style="color:var(--amarillo)">Mensaje</span><span style="font-size:11px;color:var(--gris);font-style:italic">"...${orden._mensajeTexto}..."</span></div>`:''}
     </div>
     <div class="acciones">
@@ -555,31 +609,74 @@ function marcar(id){
 // ── EXCEL MES (TODAS: pendientes + facturadas) ──
 function exportarExcelMes(){
   if(!ventasMes.length){alert('No hay ventas con factura este mes.');return;}
-  let csv='ID Orden;Fecha;Estado;Tipo;Razón Social;RUT;Giro;Ciudad;Dirección;Email;Teléfono;Producto;Cantidad;Precio Unitario;Monto Total\n';
+  let csv='ID Orden;Fecha;Estado;Tipo;Razón Social;RUT;Giro;Ciudad;Dirección;Email;Teléfono;Productos;Monto Total\n';
   ventasMes.forEach(o=>{
     const b=o.buyer||{};const bill=b.billing_info||{};
-    const razon=(bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'')).replace(/;/g,' ');
+    // Limpiar nombre
+    let razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
+    razon=limpiarNombreEmpresa(razon)||razon;
+    razon=razon.replace(/;/g,' ');
     const fecha=o.date_created?new Date(o.date_created).toLocaleDateString('es-CL'):'';
     const estado=facturadas[o.id]?'FACTURADA':'PENDIENTE';
     const tipo=o._tieneEmpresa?'EMPRESA':'MENSAJE';
+    // Todos los productos en una sola celda separados por |
     const items=o.order_items||[];
-    if(!items.length){csv+=`${o.id};${fecha};${estado};${tipo};${razon};${bill.doc_number||''};${(bill.business_type||'').replace(/;/g,' ')};${(bill.city_name||'').replace(/;/g,' ')};${(o._direccion||'').replace(/;/g,' ')};${b.email||''};${b.phone||''};-;0;0;${o.total_amount||0}\n`;}
-    else{items.forEach(it=>{csv+=`${o.id};${fecha};${estado};${tipo};${razon};${bill.doc_number||''};${(bill.business_type||'').replace(/;/g,' ')};${(bill.city_name||'').replace(/;/g,' ')};${(o._direccion||'').replace(/;/g,' ')};${b.email||''};${b.phone||''};${(it.item?.title||'').replace(/;/g,' ')};${it.quantity||1};${it.unit_price||0};${o.total_amount||0}\n`;});}
+    const prods=items.length
+      ?items.map(it=>`${(it.item?.title||'').replace(/;/g,' ')} x${it.quantity||1}`).join(' | ')
+      :'-';
+    csv+=`${o.id};${fecha};${estado};${tipo};${razon};${bill.doc_number||''};${(bill.business_type||'').replace(/;/g,' ')};${(bill.city_name||'').replace(/;/g,' ')};${(o._direccion||'').replace(/;/g,' ')};${b.email||''};${b.phone||''};${prods};${o.total_amount||0}\n`;
   });
   descargarCSV(csv,`Ventas_Facturar_${MESES[mesVer]}_${anioVer}.csv`);
 }
 
-// ── CLIENTES LOCAL (>20000) ──
+// ── NORMALIZAR RUT ──
+function normalizarRut(rut){
+  if(!rut)return '';
+  // Limpiar todo excepto dígitos y k/K
+  let r=rut.replace(/[^0-9kK]/g,'').toUpperCase();
+  if(r.length<2)return rut;
+  const dv=r.slice(-1);
+  const cuerpo=r.slice(0,-1);
+  // Formatear con puntos
+  let c=cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  return `${c}-${dv}`;
+}
+
+// ── LIMPIAR NOMBRE EMPRESA ──
+  if(!nombre)return '';
+  // Eliminar frases comunes de mensajes
+  const basura=[
+    /buenos?\s*(días?|noches?|tardes?)[,\.\s]*/gi,
+    /estimados?[,\.\s]*/gi,
+    /hola[,\.\s]*/gi,
+    /favor\s+enviar\s+compra\s+con\s+factura\s+a\s*/gi,
+    /solicito\s+factura\s+a\s*/gi,
+    /adjunto\s+datos[,\.\s]*/gi,
+    /datos\s+de\s+factura[:\s]*/gi,
+    /factura\s+a\s*/gi,
+    /por\s+favor[,\.\s]*/gi,
+    /gracias[,\.\s!]*/gi,
+    /\d{1,2}[\.\s]?\d{3}[\.\s]?\d{3}[\-\s]?[\dkK].*/gi, // eliminar RUT y lo que sigue
+  ];
+  let n=nombre;
+  for(const r of basura)n=n.replace(r,'');
+  n=n.replace(/[\,\.\;\:\!\?]+$/,'').trim();
+  // Si quedó muy corto o vacío, retornar vacío
+  if(n.length<3)return '';
+  return n;
+}
+
 function guardarClienteLocal(orden){
   const b=orden.buyer||{};const bill=b.billing_info||{};
-  const razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
+  let razon=bill.company_name||(b.first_name?b.first_name+' '+(b.last_name||''):'');
+  razon=limpiarNombreEmpresa(razon)||razon;
   const fecha=orden.date_created?new Date(orden.date_created).toLocaleDateString('es-CL'):'';
   const productos=(orden.order_items||[]).map(it=>`${it.item?.title||''} (x${it.quantity||1})`).join(' | ');
-  const cliente={orden_id:String(orden.id),fecha,razon_social:razon,rut:bill.doc_number||'',giro:bill.business_type||'',ciudad:bill.city_name||'',direccion:orden._direccion||'',email:b.email||'',telefono:b.phone||'',producto:productos,monto:orden.total_amount||0};
+  const linkML=`https://www.mercadolibre.cl/ventas/${orden.id}/detalle`;
+  const cliente={orden_id:String(orden.id),fecha,razon_social:razon,rut:bill.doc_number||'',giro:bill.business_type||'',ciudad:bill.city_name||'',direccion:orden._direccion||'',email:b.email||'',telefono:b.phone||'',producto:productos,monto:orden.total_amount||0,link_ml:linkML};
   const idx=clientesLocal.findIndex(c=>c.orden_id===cliente.orden_id);
   if(idx>=0)clientesLocal[idx]=cliente;else clientesLocal.push(cliente);
   localStorage.setItem('clientes_db',JSON.stringify(clientesLocal));
-  // Intentar guardar en nube
   try{fetch('/.netlify/functions/proxy?action=guardar_cliente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cliente)});}catch(e){}
 }
 
@@ -590,19 +687,26 @@ function renderClientes(){
   if(!clientes.length){div.innerHTML='<div class="empty-msg">No hay clientes registrados aún.<br/>Se guardan automáticamente al detectar ventas de empresas sobre $20.000.</div>';return;}
   clientes.sort((a,b)=>b.monto-a.monto);
   div.innerHTML=`<div class="table-wrap"><table class="cliente-table">
-    <thead><tr><th>Fecha</th><th>Empresa</th><th>RUT</th><th>Giro</th><th>Ciudad</th><th>Email</th><th>Tel</th><th>Monto</th></tr></thead>
+    <thead><tr><th>Fecha</th><th>Monto</th><th>RUT</th><th>Empresa</th><th>Ver venta</th><th>Email</th><th>Teléfono</th></tr></thead>
     <tbody>${clientes.map(c=>`<tr>
-      <td>${c.fecha}</td><td><strong>${c.razon_social||'—'}</strong></td>
-      <td style="font-family:monospace;font-size:11px">${c.rut||'—'}</td><td>${c.giro||'—'}</td>
-      <td>${c.ciudad||'—'}</td><td>${c.email||'—'}</td><td>${c.telefono||'—'}</td>
-      <td style="color:var(--verde);font-family:monospace">$${Number(c.monto).toLocaleString('es-CL')}</td></tr>`).join('')}
+      <td>${c.fecha}</td>
+      <td style="color:var(--verde);font-family:monospace;font-weight:700">$${Number(c.monto).toLocaleString('es-CL')}</td>
+      <td style="font-family:monospace;font-size:11px">${c.rut||'—'}</td>
+      <td><strong>${c.razon_social||'—'}</strong></td>
+      <td><a href="${c.link_ml||`https://www.mercadolibre.cl/ventas/${c.orden_id}/detalle`}" target="_blank" style="color:var(--azul);font-size:11px">Ver en ML →</a></td>
+      <td style="font-size:11px">${c.email||'—'}</td>
+      <td style="font-size:11px">${c.telefono||'—'}</td>
+    </tr>`).join('')}
     </tbody></table></div>`;
 }
 
 function exportarExcelClientes(){
   if(!clientesLocal.length){alert('No hay clientes registrados.');return;}
-  let csv='ID Orden;Fecha;Empresa/Nombre;RUT;Giro;Ciudad;Dirección;Email;Teléfono;Producto;Monto\n';
-  clientesLocal.forEach(c=>{csv+=`${c.orden_id||''};${c.fecha};${(c.razon_social||'').replace(/;/g,' ')};${c.rut};${(c.giro||'').replace(/;/g,' ')};${(c.ciudad||'').replace(/;/g,' ')};${(c.direccion||'').replace(/;/g,' ')};${c.email};${c.telefono};${(c.producto||'').replace(/;/g,' ')};${c.monto}\n`;});
+  let csv='Fecha;Monto;RUT;Empresa/Nombre;Link ML;Email;Teléfono\n';
+  clientesLocal.sort((a,b)=>b.monto-a.monto).forEach(c=>{
+    const link=c.link_ml||`https://www.mercadolibre.cl/ventas/${c.orden_id}/detalle`;
+    csv+=`${c.fecha};${c.monto};${c.rut};${(c.razon_social||'').replace(/;/g,' ')};${link};${c.email};${c.telefono}\n`;
+  });
   descargarCSV(csv,'Clientes_PuntoMed.csv');
 }
 
@@ -674,6 +778,13 @@ function descargarCSV(csv,nombre){
 }
 
 function cerrar(){localStorage.removeItem('ml_token');localStorage.removeItem('ml_rtoken');location.reload();}
+
+// ── RENOVADOR AUTOMÁTICO cada 5 horas ──
+setInterval(async()=>{
+  if(token&&rtoken){
+    await refrescar();
+  }
+}, 5 * 60 * 60 * 1000); // 5 horas en ms
 </script>
 </body>
 </html>
